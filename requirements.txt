@@ -1,0 +1,21 @@
+# Core dependencies
+anthropic>=0.39.0
+pydantic>=2.0.0
+PyPDF2>=3.0.0
+pdf2image>=1.16.0
+Pillow>=10.0.0
+
+# Optional dependencies for enhanced functionality
+openpyxl>=3.1.0  # For Excel export
+python-dotenv>=1.0.0  # For environment variable management
+
+# API Server dependencies (optional - only if running API)
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6  # For file uploads
+
+# System dependencies (install via system package manager):
+# - poppler-utils (for pdf2image)
+#   Ubuntu/Debian: sudo apt-get install poppler-utils
+#   macOS: brew install poppler
+#   Windows: Download from https://github.com/oschwartz10612/poppler-windows/releases/
