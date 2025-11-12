@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }}{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h2>Error {{ error_code }}</h2>
+        <p class="error-message">{{ error_message }}</p>
+
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Go to Home</a>
+        </div>
+
+        {% if error_code == 404 %}
+        <div class="error-help">
+            <h3>Page Not Found</h3>
+            <p>The page you're looking for doesn't exist or has been moved.</p>
+        </div>
+        {% elif error_code == 500 %}
+        <div class="error-help">
+            <h3>Internal Server Error</h3>
+            <p>Something went wrong on our end. Please try again later.</p>
+            <p>If the problem persists, please contact support.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.error-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.error-container {
+    text-align: center;
+    max-width: 600px;
+}
+
+.error-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.error-container h2 {
+    color: #c53030;
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    font-size: 1.2rem;
+    color: #4a5568;
+    margin-bottom: 2rem;
+}
+
+.error-actions {
+    margin: 2rem 0;
+}
+
+.error-help {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background: #f7fafc;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.error-help h3 {
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.error-help p {
+    color: #4a5568;
+    line-height: 1.6;
+}
+</style>
+{% endblock %}

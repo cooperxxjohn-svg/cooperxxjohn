@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}BOQ Results - {{ boq.contract.contract_name }}{% endblock %}
+
+{% block content %}
+<div class="results-section">
+    <!-- Header with project info -->
+    <div class="results-header">
+        <div class="header-left">
+            <h2>{{ boq.contract.contract_name }}</h2>
+            <div class="project-meta">
+                <span class="meta-item"><strong>Location:</strong> {{ boq.contract.location }}</span>
+                <span class="meta-item"><strong>Department:</strong> {{ boq.contract.department }}</span>
+                <span class="meta-item"><strong>BOQ ID:</strong> {{ boq.boq_id }}</span>
+                <span class="meta-item"><strong>Generated:</strong> {{ boq.created_date.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="total-cost-card">
+                <span class="total-label">Total Estimated Cost</span>
+                <span class="total-amount">₹ {{ "{:,.2f}".format(boq.total_amount|float) }}</span>
+                {% if boq.gst_percentage %}
+                <span class="gst-info">+ GST @ {{ boq.gst_percentage }}%</span>
+                <span class="grand-total">₹ {{ "{:,.2f}".format((boq.total_amount|float) * (1 + (boq.gst_percentage|float / 100))) }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Validation Status -->
+    {% if validation %}
+    <div class="validation-section">
+        <h3>Validation Status</h3>
+        <div class="validation-summary {% if validation.is_valid %}validation-pass{% else %}validation-fail{% endif %}">
+            <div class="validation-icon">
+                {% if validation.is_valid %}✓{% else %}⚠️{% endif %}
+            </div>
+            <div class="validation-content">
+                <strong>
+                    {% if validation.is_valid %}
+                        CPWD Compliant - All validations passed
+                    {% else %}
+                        {{ validation.total_issues }} validation issue(s) found
+                    {% endif %}
+                </strong>
+                {% if not validation.is_valid %}
+                <p>
+                    {{ validation.errors|length }} errors,
+                    {{ validation.warnings|length }} warnings,
+                    {{ validation.info|length }} info
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if validation.errors %}
+        <div class="validation-details">
+            <h4>Errors ({{ validation.errors|length }})</h4>
+            <ul class="validation-list validation-errors">
+                {% for error in validation.errors %}
+                <li>
+                    <strong>{{ error.category }}:</strong> {{ error.message }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if validation.warnings %}
+        <div class="validation-details">
+            <h4>Warnings ({{ validation.warnings|length }})</h4>
+            <ul class="validation-list validation-warnings">
+                {% for warning in validation.warnings %}
+                <li>
+                    <strong>{{ warning.category }}:</strong> {{ warning.message }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Download Options -->
+    <div class="download-section">
+        <h3>Download BOQ</h3>
+        <div class="download-buttons">
+            <a href="{{ url_for('download', format='excel') }}" class="btn btn-download">
+                <span class="btn-icon">📊</span>
+                Excel (.xlsx)
+            </a>
+            <a href="{{ url_for('download', format='pdf') }}" class="btn btn-download">
+                <span class="btn-icon">📄</span>
+                PDF
+            </a>
+            <a href="{{ url_for('download', format='csv') }}" class="btn btn-download">
+                <span class="btn-icon">📋</span>
+                CSV
+            </a>
+            <a href="{{ url_for('download', format='json') }}" class="btn btn-download">
+                <span class="btn-icon">{ }</span>
+                JSON
+            </a>
+        </div>
+    </div>
+
+    <!-- Category Summary -->
+    {% if category_summary %}
+    <div class="summary-section">
+        <h3>Summary by Category</h3>
+        <div class="category-cards">
+            {% for category, data in category_summary.items() %}
+            <div class="category-card">
+                <div class="category-name">{{ category.replace('_', ' ').title() }}</div>
+                <div class="category-amount">₹ {{ "{:,.2f}".format(data.amount|float) }}</div>
+                <div class="category-percent">
+                    {{ "{:.1f}".format((data.amount|float / boq.total_amount|float) * 100) }}% of total
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- BOQ Items Table -->
+    <div class="boq-table-section">
+        <h3>Bill of Quantities - Detailed Items</h3>
+
+        {% for section in boq.sections %}
+        <div class="section-container">
+            <div class="section-header">
+                <h4>Section {{ section.section_no }}: {{ section.title }}</h4>
+                {% if section.description %}
+                <p class="section-description">{{ section.description }}</p>
+                {% endif %}
+            </div>
+
+            <div class="table-responsive">
+                <table class="boq-table">
+                    <thead>
+                        <tr>
+                            <th>Item No.</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Unit</th>
+                            <th class="text-right">Quantity</th>
+                            <th class="text-right">Rate (₹)</th>
+                            <th class="text-right">Amount (₹)</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in section.items %}
+                        <tr class="boq-row" onclick="toggleItemDetails('item-{{ section.section_no }}-{{ loop.index }}')">
+                            <td><strong>{{ item.item_no }}</strong></td>
+                            <td>
+                                <div class="item-description">{{ item.description }}</div>
+                                {% if item.specification %}
+                                <div class="item-spec">{{ item.specification }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="category-badge">{{ item.category.value if item.category else 'N/A' }}</span>
+                            </td>
+                            <td>{{ item.unit.value if item.unit else '-' }}</td>
+                            <td class="text-right">{{ "{:,.2f}".format(item.quantity|float) if item.quantity else '-' }}</td>
+                            <td class="text-right">{{ "{:,.2f}".format(item.unit_rate|float) if item.unit_rate else '-' }}</td>
+                            <td class="text-right"><strong>{{ "{:,.2f}".format(item.total_amount|float) if item.total_amount else '-' }}</strong></td>
+                            <td>{{ item.location or '-' }}</td>
+                        </tr>
+
+                        <!-- Expandable item details -->
+                        <tr id="item-{{ section.section_no }}-{{ loop.index }}" class="item-details" style="display: none;">
+                            <td colspan="8">
+                                <div class="details-content">
+                                    <div class="details-grid">
+                                        {% if item.materials %}
+                                        <div class="details-section">
+                                            <h5>Materials</h5>
+                                            <table class="details-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Material</th>
+                                                        <th>Grade/Spec</th>
+                                                        <th>Unit</th>
+                                                        <th class="text-right">Qty</th>
+                                                        <th class="text-right">Rate (₹)</th>
+                                                        <th class="text-right">Amount (₹)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for material in item.materials %}
+                                                    <tr>
+                                                        <td>{{ material.name }}</td>
+                                                        <td>{{ material.grade.value if material.grade else material.specification or '-' }}</td>
+                                                        <td>{{ material.unit.value if material.unit else '-' }}</td>
+                                                        <td class="text-right">{{ "{:,.2f}".format(material.quantity|float) if material.quantity else '-' }}</td>
+                                                        <td class="text-right">{{ "{:,.2f}".format(material.rate|float) if material.rate else '-' }}</td>
+                                                        <td class="text-right">{{ "{:,.2f}".format(material.amount|float) if material.amount else '-' }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% endif %}
+
+                                        {% if item.labour %}
+                                        <div class="details-section">
+                                            <h5>Labour</h5>
+                                            <table class="details-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Category</th>
+                                                        <th>Unit</th>
+                                                        <th class="text-right">Qty</th>
+                                                        <th class="text-right">Rate (₹)</th>
+                                                        <th class="text-right">Amount (₹)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for labour in item.labour %}
+                                                    <tr>
+                                                        <td>{{ labour.category }}</td>
+                                                        <td>{{ labour.unit.value if labour.unit else '-' }}</td>
+                                                        <td class="text-right">{{ "{:,.2f}".format(labour.quantity|float) if labour.quantity else '-' }}</td>
+                                                        <td class="text-right">{{ "{:,.2f}".format(labour.rate|float) if labour.rate else '-' }}</td>
+                                                        <td class="text-right">{{ "{:,.2f}".format(labour.amount|float) if labour.amount else '-' }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="details-section">
+                                            <h5>Additional Information</h5>
+                                            <div class="info-grid">
+                                                {% if item.reference_standard %}
+                                                <div class="info-item">
+                                                    <strong>Standard:</strong> {{ item.reference_standard }}
+                                                </div>
+                                                {% endif %}
+                                                {% if item.drawing_reference %}
+                                                <div class="info-item">
+                                                    <strong>Drawing Ref:</strong> {{ item.drawing_reference }}
+                                                </div>
+                                                {% endif %}
+                                                {% if item.overhead_percentage %}
+                                                <div class="info-item">
+                                                    <strong>Overhead:</strong> {{ item.overhead_percentage }}%
+                                                </div>
+                                                {% endif %}
+                                                {% if item.profit_percentage %}
+                                                <div class="info-item">
+                                                    <strong>Profit:</strong> {{ item.profit_percentage }}%
+                                                </div>
+                                                {% endif %}
+                                                {% if item.remarks %}
+                                                <div class="info-item full-width">
+                                                    <strong>Remarks:</strong> {{ item.remarks }}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="section-total">
+                            <td colspan="6" class="text-right"><strong>Section Total:</strong></td>
+                            <td class="text-right">
+                                <strong>₹ {{ "{:,.2f}".format(section.items|sum(attribute='total_amount')|float) }}</strong>
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Grand Total -->
+        <div class="grand-total-section">
+            <div class="total-row">
+                <span class="total-label">Subtotal:</span>
+                <span class="total-value">₹ {{ "{:,.2f}".format(boq.total_amount|float) }}</span>
+            </div>
+            {% if boq.gst_percentage %}
+            <div class="total-row">
+                <span class="total-label">GST ({{ boq.gst_percentage }}%):</span>
+                <span class="total-value">₹ {{ "{:,.2f}".format((boq.total_amount|float) * (boq.gst_percentage|float / 100)) }}</span>
+            </div>
+            <div class="total-row grand-total">
+                <span class="total-label">Grand Total:</span>
+                <span class="total-value">₹ {{ "{:,.2f}".format((boq.total_amount|float) * (1 + (boq.gst_percentage|float / 100))) }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions-footer">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Create New Estimate</a>
+        <a href="{{ url_for('download', format='excel') }}" class="btn btn-primary">Download Complete BOQ</a>
+    </div>
+</div>
+
+<script>
+function toggleItemDetails(itemId) {
+    const detailsRow = document.getElementById(itemId);
+    if (detailsRow.style.display === 'none') {
+        detailsRow.style.display = 'table-row';
+    } else {
+        detailsRow.style.display = 'none';
+    }
+}
+
+// Print functionality
+function printBOQ() {
+    window.print();
+}
+</script>
+{% endblock %}

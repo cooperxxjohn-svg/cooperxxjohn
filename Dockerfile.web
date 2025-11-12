@@ -1,0 +1,45 @@
+# BOQ Estimation System - Flask Web App Production Docker Image
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for PDF processing
+RUN apt-get update && apt-get install -y \
+    poppler-utils \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt web_requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r web_requirements.txt
+
+# Copy application code
+COPY boq_schema.py boq_calculator.py boq_validator.py ./
+COPY drawing_extractor.py boq_mapper.py boq_estimator.py config.py ./
+COPY web_app.py gunicorn_config.py ./
+COPY templates/ templates/
+COPY static/ static/
+
+# Create necessary directories
+RUN mkdir -p uploads outputs logs && \
+    chmod 777 uploads outputs logs
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    FLASK_APP=web_app.py \
+    PORT=5000
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Run with gunicorn
+CMD ["gunicorn", "--config", "gunicorn_config.py", "web_app:app"]

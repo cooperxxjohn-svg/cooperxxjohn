@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BOQ Estimation System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1 class="logo">
+                    <a href="{{ url_for('index') }}">BOQ Estimation System</a>
+                </h1>
+                <p class="tagline">Professional Bill of Quantities Generator for Government Contractors</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span class="alert-icon">
+                                {% if category == 'error' %}⚠️{% elif category == 'success' %}✓{% else %}ℹ️{% endif %}
+                            </span>
+                            <span class="alert-message">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; {{ now.year if now else '2024' }} BOQ Estimation System | CPWD Compliant |
+                <a href="https://github.com/anthropics/claude-code" target="_blank">Powered by Claude</a>
+            </p>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
