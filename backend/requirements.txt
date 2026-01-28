@@ -1,6 +1,32 @@
+# Web Framework
 Flask==3.0.0
 Flask-CORS==4.0.0
-anthropic==0.39.0
-PyPDF2==3.0.1
 Werkzeug==3.0.1
 python-dotenv==1.0.0
+
+# AI & LLM
+anthropic==0.39.0
+
+# PDF Processing
+PyPDF2==3.0.1
+PyMuPDF==1.23.8  # fitz - for advanced PDF operations
+tabula-py==2.9.0  # Table extraction from PDFs
+camelot-py[cv]==0.11.0  # Alternative table extraction
+
+# Image Processing
+opencv-python==4.9.0.80  # cv2 - for image preprocessing
+Pillow==10.1.0  # PIL - image manipulation
+numpy==1.26.3  # Required for cv2
+
+# OCR
+pytesseract==0.3.10  # Tesseract OCR wrapper
+# Note: Tesseract binary must be installed separately
+# Ubuntu: sudo apt-get install tesseract-ocr
+# Mac: brew install tesseract
+# Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+
+# Language Detection
+langdetect==1.0.9
+
+# Data Processing
+pandas==2.1.4  # DataFrame operations for tables
