@@ -37,6 +37,46 @@ class DrawingSetProcessor:
     def __init__(self, anthropic_api_key: str = None):
         self.xboq = XBOQEnhanced(anthropic_api_key)
 
+    def compress_image_for_vision_api(self, image_path: str, max_size_mb: float = 4.5) -> str:
+        """
+        Compress image to stay under Vision API limit (5MB)
+
+        Args:
+            image_path: Path to image file
+            max_size_mb: Maximum file size in MB
+
+        Returns:
+            Path to compressed image (or original if already small enough)
+        """
+        max_size_bytes = int(max_size_mb * 1024 * 1024)
+        file_size = os.path.getsize(image_path)
+
+        if file_size <= max_size_bytes:
+            return image_path
+
+        logger.info(f"    Compressing {Path(image_path).name}: {file_size/1024/1024:.1f}MB -> target {max_size_mb}MB")
+
+        # Load and compress
+        img = Image.open(image_path)
+
+        # Calculate resize ratio to get under size limit
+        # Estimate: file size is roughly proportional to pixel count
+        ratio = (max_size_bytes / file_size) ** 0.5
+        new_width = int(img.width * ratio * 0.9)  # 0.9 for safety margin
+        new_height = int(img.height * ratio * 0.9)
+
+        # Resize
+        img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        # Save with compression
+        compressed_path = image_path.replace('.png', '_compressed.jpg')
+        img_resized.save(compressed_path, 'JPEG', quality=85, optimize=True)
+
+        new_size = os.path.getsize(compressed_path)
+        logger.info(f"    Compressed to {new_size/1024/1024:.1f}MB")
+
+        return compressed_path
+
     def split_pdf_to_images(self, pdf_path: str, output_dir: str) -> List[str]:
         """
         Split PDF into individual page images for Vision API processing
@@ -58,15 +98,18 @@ class DrawingSetProcessor:
             for page_num in range(len(doc)):
                 page = doc[page_num]
 
-                # Render at high DPI for better OCR/Vision
-                mat = fitz.Matrix(2.0, 2.0)  # 2x zoom = 144 DPI
+                # Render at moderate DPI (was too high before)
+                mat = fitz.Matrix(1.5, 1.5)  # 1.5x zoom = 108 DPI (reduced from 144)
                 pix = page.get_pixmap(matrix=mat)
 
                 image_path = os.path.join(output_dir, f"page_{page_num + 1:03d}.png")
                 pix.save(image_path)
-                image_paths.append(image_path)
 
-                logger.info(f"  Converted page {page_num + 1}/{len(doc)} -> {image_path}")
+                # Compress if needed for Vision API
+                compressed_path = self.compress_image_for_vision_api(image_path)
+                image_paths.append(compressed_path)
+
+                logger.info(f"  Converted page {page_num + 1}/{len(doc)} -> {Path(compressed_path).name}")
 
             doc.close()
 
