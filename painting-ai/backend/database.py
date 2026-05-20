@@ -157,6 +157,19 @@ class Database:
                 return user
         return None
 
+    def get_user_by_api_key(self, api_key: str) -> Optional[Dict]:
+        """Get user by API key"""
+        users_file = self.data_dir / "users.json"
+
+        if not users_file.exists():
+            return None
+
+        users = self._read_json(users_file)
+        for user in users.values():
+            if user.get("api_key") == api_key:
+                return user
+        return None
+
     # Organizations (Phase 3)
     def save_organization(self, org: Dict):
         """Save a new organization"""
@@ -168,6 +181,54 @@ class Database:
         orgs = self._read_json(orgs_file)
         orgs[org["id"]] = org
         self._write_json(orgs_file, orgs)
+
+    # Webhooks (Phase 5)
+    def save_webhook(self, webhook: Dict):
+        """Save a new webhook"""
+        webhooks_file = self.data_dir / "webhooks.json"
+
+        if not webhooks_file.exists():
+            self._write_json(webhooks_file, {})
+
+        webhooks = self._read_json(webhooks_file)
+        webhooks[webhook["id"]] = webhook
+        self._write_json(webhooks_file, webhooks)
+
+    def get_user_webhooks(self, user_id: str) -> List[Dict]:
+        """Get all webhooks for a user"""
+        webhooks_file = self.data_dir / "webhooks.json"
+
+        if not webhooks_file.exists():
+            return []
+
+        webhooks = self._read_json(webhooks_file)
+        return [
+            wh for wh in webhooks.values()
+            if wh.get("user_id") == user_id
+        ]
+
+    def get_webhook(self, webhook_id: str) -> Optional[Dict]:
+        """Get webhook by ID"""
+        webhooks_file = self.data_dir / "webhooks.json"
+
+        if not webhooks_file.exists():
+            return None
+
+        webhooks = self._read_json(webhooks_file)
+        return webhooks.get(webhook_id)
+
+    def delete_webhook(self, webhook_id: str):
+        """Delete a webhook"""
+        webhooks_file = self.data_dir / "webhooks.json"
+
+        if not webhooks_file.exists():
+            return
+
+        webhooks = self._read_json(webhooks_file)
+
+        if webhook_id in webhooks:
+            del webhooks[webhook_id]
+            self._write_json(webhooks_file, webhooks)
 
 
 if __name__ == "__main__":

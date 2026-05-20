@@ -12,6 +12,12 @@ from collections import defaultdict
 import time
 import hashlib
 import hmac
+import uuid
+from database import Database
+from assembly_expansion import AssemblyExpander
+
+# Initialize database
+db = Database()
 
 
 # Rate limiting
@@ -46,6 +52,35 @@ class RateLimiter:
 
 
 rate_limiter = RateLimiter()
+
+
+# API Usage Logging
+def log_api_usage(user_id: str, endpoint: str, method: str = "GET", status_code: int = 200):
+    """Log API usage for analytics"""
+    try:
+        usage_file = db.data_dir / "api_usage.json"
+
+        if not usage_file.exists():
+            db._write_json(usage_file, [])
+
+        usage = db._read_json(usage_file)
+
+        usage.append({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "endpoint": endpoint,
+            "method": method,
+            "status_code": status_code,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+        # Keep only last 10000 entries
+        if len(usage) > 10000:
+            usage = usage[-10000:]
+
+        db._write_json(usage_file, usage)
+    except Exception as e:
+        print(f"Failed to log API usage: {e}")
 
 
 # API Models
@@ -92,7 +127,7 @@ class WebhookResponse(BaseModel):
 
 
 # Dependencies
-async def verify_api_key(x_api_key: str = Header(...)) -> str:
+async def verify_api_key(x_api_key: str = Header(...)) -> dict:
     """Verify API key and apply rate limiting"""
 
     # Check rate limit
@@ -103,11 +138,22 @@ async def verify_api_key(x_api_key: str = Header(...)) -> str:
             headers={"Retry-After": "60"}
         )
 
-    # Verify API key (would check database in production)
+    # Verify API key in database
     if not x_api_key.startswith("pk_"):
+        raise HTTPException(status_code=401, detail="Invalid API key format")
+
+    user = db.get_user_by_api_key(x_api_key)
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
-    return x_api_key
+    # Check subscription status
+    if user.get("subscription_status") not in ["active", "trialing"]:
+        raise HTTPException(status_code=403, detail="Subscription inactive. Please upgrade your plan.")
+
+    # Log API usage
+    log_api_usage(user["id"], "api_request")
+
+    return user
 
 
 # Public API App
@@ -147,14 +193,18 @@ async def check_rate_limit(api_key: str = Depends(verify_api_key)):
 @api_public.post("/api/projects", response_model=ProjectResponse)
 async def create_project_api(
     project: ProjectCreateRequest,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """Create a new project via API"""
-    # In production, would use database service
-    return {
-        "id": "proj_123",
+    project_id = str(uuid.uuid4())
+
+    project_data = {
+        "id": project_id,
         "name": project.name,
         "customer": project.customer,
+        "address": project.address,
+        "project_type": project.project_type,
+        "owner_id": user["id"],
         "status": "created",
         "total_rooms": 0,
         "total_sqft": 0.0,
@@ -162,47 +212,54 @@ async def create_project_api(
         "created_at": datetime.utcnow().isoformat()
     }
 
+    db.save_project(project_data)
+    log_api_usage(user["id"], "/api/projects", "POST", 201)
+
+    return project_data
+
 
 @api_public.get("/api/projects/{project_id}", response_model=ProjectResponse)
 async def get_project_api(
     project_id: str,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """Get project details via API"""
-    # Would fetch from database
-    return {
-        "id": project_id,
-        "name": "Sample Project",
-        "customer": "ABC Construction",
-        "status": "complete",
-        "total_rooms": 10,
-        "total_sqft": 2500.0,
-        "estimated_cost": 5000.0,
-        "created_at": datetime.utcnow().isoformat()
-    }
+    project = db.get_project(project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Verify ownership
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    log_api_usage(user["id"], f"/api/projects/{project_id}", "GET", 200)
+
+    return project
 
 
 @api_public.get("/api/projects/{project_id}/rooms")
 async def get_project_rooms_api(
     project_id: str,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """Get all rooms for a project"""
+    project = db.get_project(project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Verify ownership
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    rooms = db.get_project_rooms(project_id)
+
+    log_api_usage(user["id"], f"/api/projects/{project_id}/rooms", "GET", 200)
+
     return {
         "project_id": project_id,
-        "rooms": [
-            {
-                "id": "room_1",
-                "name": "Office 1",
-                "number": "201",
-                "dimensions": {"length": 20, "width": 15, "height": 9},
-                "total_area": 630,
-                "surfaces": {
-                    "walls": {"area": 579},
-                    "ceiling": {"area": 300}
-                }
-            }
-        ]
+        "rooms": rooms
     }
 
 
@@ -210,17 +267,56 @@ async def get_project_rooms_api(
 async def export_project_api(
     project_id: str,
     format: str,  # excel or pdf
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """Export project to Excel or PDF"""
     if format not in ["excel", "pdf"]:
         raise HTTPException(status_code=400, detail="Format must be 'excel' or 'pdf'")
 
+    project = db.get_project(project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if project.get("status") != "complete":
+        raise HTTPException(status_code=400, detail="Project must be complete to export")
+
+    # Generate export (this would be async in production with Celery)
+    from export_generator import ExportGenerator
+
+    rooms = db.get_project_rooms(project_id)
+    generator = ExportGenerator()
+
+    if format == "excel":
+        file_path = generator.generate_excel(project, rooms)
+        filename = f"{project['name']}_estimate.xlsx"
+    else:  # pdf
+        file_path = generator.generate_pdf(project, rooms)
+        filename = f"{project['name']}_proposal.pdf"
+
+    log_api_usage(user["id"], f"/api/projects/{project_id}/export/{format}", "POST", 200)
+
+    # Trigger webhook
+    await WebhookDelivery.trigger_webhooks(
+        event="export.generated",
+        data={
+            "project_id": project_id,
+            "format": format,
+            "filename": filename
+        },
+        user_id=user["id"]
+    )
+
     return {
         "project_id": project_id,
         "format": format,
-        "download_url": f"https://paintingai.com/downloads/{project_id}.{format}",
-        "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat()
+        "filename": filename,
+        "file_path": str(file_path),
+        "download_url": f"/projects/{project_id}/export/{format}",
+        "created_at": datetime.utcnow().isoformat()
     }
 
 
@@ -250,7 +346,7 @@ async def update_room(
     project_id: str,
     room_id: str,
     room_update: RoomUpdateRequest,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """
     Edit detected room dimensions and properties
@@ -264,22 +360,50 @@ async def update_room(
     This is a critical part of the review workflow validated by
     Rudus, Bidflow, and industry standards.
     """
-    # In production, would update database
-    return {
-        "id": room_id,
-        "project_id": project_id,
-        "name": room_update.name or "Updated Room",
-        "dimensions": room_update.dimensions or {"length": 20, "width": 15, "height": 9},
-        "updated_at": datetime.utcnow().isoformat(),
-        "message": "Room updated successfully"
-    }
+    project = db.get_project(project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    room = db.get_room(room_id)
+
+    if not room or room.get("project_id") != project_id:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    # Build updates dict
+    updates = {}
+    if room_update.name:
+        updates["name"] = room_update.name
+    if room_update.number:
+        updates["number"] = room_update.number
+    if room_update.dimensions:
+        updates["dimensions"] = room_update.dimensions
+        # Recalculate total area
+        dims = room_update.dimensions
+        if all(k in dims for k in ["length", "width", "height"]):
+            walls = 2 * (dims["length"] + dims["width"]) * dims["height"]
+            ceiling = dims["length"] * dims["width"]
+            updates["total_area"] = walls + ceiling
+    if room_update.surfaces:
+        updates["surfaces"] = room_update.surfaces
+
+    updates["updated_at"] = datetime.utcnow().isoformat()
+
+    db.update_room(room_id, updates)
+    log_api_usage(user["id"], f"/api/projects/{project_id}/rooms/{room_id}", "PUT", 200)
+
+    updated_room = db.get_room(room_id)
+    return updated_room
 
 
 @api_public.post("/api/projects/{project_id}/rooms")
 async def create_room_manually(
     project_id: str,
     room: RoomCreateRequest,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """
     Manually add a room that AI missed
@@ -289,27 +413,52 @@ async def create_room_manually(
 
     Required for complete estimates on complex floor plans.
     """
-    import uuid
+    project = db.get_project(project_id)
 
-    room_id = f"room_{uuid.uuid4().hex[:8]}"
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
 
-    return {
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    room_id = str(uuid.uuid4())
+
+    # Calculate total area
+    dims = room.dimensions
+    total_area = 0
+    if all(k in dims for k in ["length", "width", "height"]):
+        walls = 2 * (dims["length"] + dims["width"]) * dims["height"]
+        ceiling = dims["length"] * dims["width"]
+        total_area = walls + ceiling
+
+    room_data = {
         "id": room_id,
         "project_id": project_id,
         "name": room.name,
         "number": room.number,
         "dimensions": room.dimensions,
+        "total_area": total_area,
         "manually_added": True,
-        "created_at": datetime.utcnow().isoformat(),
-        "message": "Room added successfully"
+        "created_at": datetime.utcnow().isoformat()
     }
+
+    db.save_room(room_data)
+
+    # Update project total rooms
+    db.update_project(project_id, {
+        "total_rooms": (project.get("total_rooms", 0) + 1)
+    })
+
+    log_api_usage(user["id"], f"/api/projects/{project_id}/rooms", "POST", 201)
+
+    return room_data
 
 
 @api_public.delete("/api/projects/{project_id}/rooms/{room_id}")
 async def delete_room(
     project_id: str,
     room_id: str,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """
     Delete a room that was incorrectly detected
@@ -317,7 +466,28 @@ async def delete_room(
     AI sometimes detects non-rooms (legends, title blocks, notes)
     as rooms. This lets estimators remove false positives.
     """
-    # In production, would delete from database
+    project = db.get_project(project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    room = db.get_room(room_id)
+
+    if not room or room.get("project_id") != project_id:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    db.delete_room(room_id)
+
+    # Update project total rooms
+    db.update_project(project_id, {
+        "total_rooms": max(0, project.get("total_rooms", 0) - 1)
+    })
+
+    log_api_usage(user["id"], f"/api/projects/{project_id}/rooms/{room_id}", "DELETE", 200)
+
     return {
         "message": "Room deleted successfully",
         "room_id": room_id,
@@ -330,7 +500,7 @@ async def delete_room(
 async def update_materials(
     project_id: str,
     materials: MaterialUpdateRequest,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """
     Change material selections for project
@@ -341,7 +511,26 @@ async def update_materials(
 
     This triggers recalculation of all material costs.
     """
-    # Would fetch materials from database and recalculate costs
+    project = db.get_project(project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Update project with new material selections
+    updates = {
+        "paint_id": materials.paint_id,
+        "primer_id": materials.primer_id,
+        "quality_tier": materials.quality_tier,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+    db.update_project(project_id, updates)
+
+    log_api_usage(user["id"], f"/api/projects/{project_id}/materials", "PUT", 200)
+
     return {
         "project_id": project_id,
         "materials": {
@@ -350,14 +539,16 @@ async def update_materials(
             "quality_tier": materials.quality_tier
         },
         "updated_at": datetime.utcnow().isoformat(),
-        "message": "Materials updated, costs recalculated"
+        "message": "Materials updated. Recalculate estimate to apply changes."
     }
 
 
 @api_public.get("/api/projects/{project_id}/assembly")
 async def get_assembly_breakdown(
     project_id: str,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key),
+    paint_type: str = "commercial",
+    labor_rate: float = 50.0
 ):
     """
     Get detailed assembly line item breakdown
@@ -370,35 +561,45 @@ async def get_assembly_breakdown(
 
     Each room broken down into granular tasks with pricing.
     """
-    # In production, would call AssemblyExpander
+    project = db.get_project(project_id)
+
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.get("owner_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    rooms = db.get_project_rooms(project_id)
+
+    if not rooms:
+        raise HTTPException(status_code=400, detail="No rooms found. Upload and process a drawing first.")
+
+    # Convert room dicts to Room dataclass objects
+    from assembly_expansion import Room
+
+    room_objects = []
+    for room_data in rooms:
+        dims = room_data.get("dimensions", {})
+        room_obj = Room(
+            id=room_data["id"],
+            name=room_data["name"],
+            length=dims.get("length", 0),
+            width=dims.get("width", 0),
+            height=dims.get("height", 0),
+            total_area=room_data.get("total_area", 0)
+        )
+        room_objects.append(room_obj)
+
+    # Expand to assembly
+    expander = AssemblyExpander(labor_rate=labor_rate)
+    result = expander.expand_project(room_objects, paint_type=paint_type)
+
+    log_api_usage(user["id"], f"/api/projects/{project_id}/assembly", "GET", 200)
+
     return {
         "project_id": project_id,
-        "line_items": [
-            {
-                "item_number": "1.1",
-                "category": "Prep - Walls",
-                "description": "Spackle nail holes and imperfections",
-                "quantity": 0.5,
-                "unit": "hour",
-                "unit_cost": 50.0,
-                "total_cost": 25.0
-            },
-            {
-                "item_number": "1.2",
-                "category": "Prep - Walls",
-                "description": "Sand surfaces smooth",
-                "quantity": 1.2,
-                "unit": "hour",
-                "unit_cost": 50.0,
-                "total_cost": 60.0
-            }
-        ],
-        "summary": {
-            "total_line_items": 144,
-            "material_cost": 2500.0,
-            "labor_cost": 2500.0,
-            "total_cost": 5000.0
-        }
+        "line_items": [item.__dict__ for item in result["line_items"]],
+        "summary": result["summary"]
     }
 
 
@@ -406,16 +607,15 @@ async def get_assembly_breakdown(
 @api_public.post("/api/webhooks", response_model=WebhookResponse)
 async def create_webhook(
     webhook: WebhookCreate,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """Create a webhook for event notifications"""
-    import uuid
-
-    # Generate webhook secret
+    webhook_id = f"wh_{uuid.uuid4().hex}"
     secret = f"whsec_{uuid.uuid4().hex}"
 
-    return {
-        "id": f"wh_{uuid.uuid4().hex}",
+    webhook_data = {
+        "id": webhook_id,
+        "user_id": user["id"],
         "url": webhook.url,
         "events": webhook.events,
         "secret": secret,
@@ -423,38 +623,48 @@ async def create_webhook(
         "created_at": datetime.utcnow().isoformat()
     }
 
+    db.save_webhook(webhook_data)
+    log_api_usage(user["id"], "/api/webhooks", "POST", 201)
+
+    return webhook_data
+
 
 @api_public.get("/api/webhooks")
-async def list_webhooks(api_key: str = Depends(verify_api_key)):
+async def list_webhooks(user: dict = Depends(verify_api_key)):
     """List all webhooks"""
-    return {
-        "webhooks": [
-            {
-                "id": "wh_123",
-                "url": "https://example.com/webhook",
-                "events": ["project.completed"],
-                "is_active": True,
-                "created_at": "2026-05-20T00:00:00"
-            }
-        ]
-    }
+    webhooks = db.get_user_webhooks(user["id"])
+
+    log_api_usage(user["id"], "/api/webhooks", "GET", 200)
+
+    return {"webhooks": webhooks}
 
 
 @api_public.delete("/api/webhooks/{webhook_id}")
-async def delete_webhook(
+async def delete_webhook_endpoint(
     webhook_id: str,
-    api_key: str = Depends(verify_api_key)
+    user: dict = Depends(verify_api_key)
 ):
     """Delete a webhook"""
+    webhook = db.get_webhook(webhook_id)
+
+    if not webhook:
+        raise HTTPException(status_code=404, detail="Webhook not found")
+
+    if webhook.get("user_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    db.delete_webhook(webhook_id)
+    log_api_usage(user["id"], f"/api/webhooks/{webhook_id}", "DELETE", 200)
+
     return {
-        "message": "Webhook deleted",
+        "message": "Webhook deleted successfully",
         "webhook_id": webhook_id
     }
 
 
 # Webhook delivery
 class WebhookDelivery:
-    """Handle webhook event delivery"""
+    """Handle webhook event delivery with retry logic"""
 
     @staticmethod
     def sign_payload(payload: dict, secret: str) -> str:
@@ -471,9 +681,15 @@ class WebhookDelivery:
         return f"sha256={signature}"
 
     @staticmethod
-    async def deliver_webhook(url: str, event: str, data: dict, secret: str):
-        """Deliver webhook to endpoint"""
+    async def deliver_webhook(url: str, event: str, data: dict, secret: str, max_retries: int = 3):
+        """
+        Deliver webhook to endpoint with exponential backoff retry
+
+        Retries: 3 attempts with 2s, 4s, 8s delays
+        Returns: (success: bool, status_code: int, error: str)
+        """
         import httpx
+        import asyncio
 
         payload = {
             "event": event,
@@ -489,20 +705,100 @@ class WebhookDelivery:
             "X-Webhook-Event": event
         }
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url,
-                    json=payload,
-                    headers=headers,
-                    timeout=30.0
-                )
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        url,
+                        json=payload,
+                        headers=headers,
+                        timeout=30.0
+                    )
 
-                return response.status_code == 200
+                    if response.status_code == 200:
+                        return (True, response.status_code, None)
 
-        except Exception as e:
-            print(f"Webhook delivery failed: {e}")
-            return False
+                    # Non-200 response
+                    error_msg = f"Status {response.status_code}: {response.text[:200]}"
+
+                    # Don't retry on 4xx errors (client errors)
+                    if 400 <= response.status_code < 500:
+                        return (False, response.status_code, error_msg)
+
+                    # Retry on 5xx errors
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                        continue
+
+                    return (False, response.status_code, error_msg)
+
+            except Exception as e:
+                error_msg = str(e)
+
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+
+                return (False, 0, error_msg)
+
+        return (False, 0, "Max retries exceeded")
+
+    @staticmethod
+    async def trigger_webhooks(event: str, data: dict, user_id: str):
+        """Trigger all webhooks for a user that match the event"""
+        webhooks = db.get_user_webhooks(user_id)
+
+        for webhook in webhooks:
+            if not webhook.get("is_active"):
+                continue
+
+            if event not in webhook.get("events", []):
+                continue
+
+            success, status_code, error = await WebhookDelivery.deliver_webhook(
+                url=webhook["url"],
+                event=event,
+                data=data,
+                secret=webhook["secret"]
+            )
+
+            # Log delivery attempt
+            log_webhook_delivery(
+                webhook_id=webhook["id"],
+                event=event,
+                success=success,
+                status_code=status_code,
+                error=error
+            )
+
+
+def log_webhook_delivery(webhook_id: str, event: str, success: bool, status_code: int, error: str = None):
+    """Log webhook delivery attempts"""
+    try:
+        log_file = db.data_dir / "webhook_logs.json"
+
+        if not log_file.exists():
+            db._write_json(log_file, [])
+
+        logs = db._read_json(log_file)
+
+        logs.append({
+            "id": str(uuid.uuid4()),
+            "webhook_id": webhook_id,
+            "event": event,
+            "success": success,
+            "status_code": status_code,
+            "error": error,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+        # Keep only last 1000 logs
+        if len(logs) > 1000:
+            logs = logs[-1000:]
+
+        db._write_json(log_file, logs)
+    except Exception as e:
+        print(f"Failed to log webhook delivery: {e}")
 
 
 # API Documentation
