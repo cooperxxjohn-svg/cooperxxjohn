@@ -12,7 +12,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.units import inch
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class ExportGenerator:
@@ -39,45 +39,76 @@ class ExportGenerator:
         workbook.save(output_path)
 
     def _create_summary_sheet(self, workbook, project: Dict, rooms: List[Dict]):
-        """Create project summary sheet"""
+        """Create professional project summary sheet with branding"""
 
         sheet = workbook.create_sheet("Summary")
 
-        # Header
-        sheet["A1"] = "PAINTING TAKEOFF SUMMARY"
-        sheet["A1"].font = Font(size=16, bold=True)
+        # Set column widths for better appearance
+        sheet.column_dimensions['A'].width = 25
+        sheet.column_dimensions['B'].width = 30
+        sheet.column_dimensions['C'].width = 20
 
-        # Project info
-        row = 3
-        sheet[f"A{row}"] = "Project:"
-        sheet[f"B{row}"] = project.get("name", "")
-        sheet[f"A{row}"].font = Font(bold=True)
+        # Company Branding Section
+        sheet["A1"] = "PAINTING.AI"
+        sheet["A1"].font = Font(size=20, bold=True, color="1F4E78")
+        sheet["A2"] = "Professional Painting Takeoff & Estimation"
+        sheet["A2"].font = Font(size=10, italic=True, color="666666")
+
+        # Header with background
+        sheet["A4"] = "PAINTING PROPOSAL & ESTIMATE"
+        sheet["A4"].font = Font(size=16, bold=True, color="FFFFFF")
+        sheet["A4"].fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        sheet.merge_cells('A4:C4')
+        sheet["A4"].alignment = Alignment(horizontal='center')
+
+        # Project Information Section
+        row = 6
+        info_header_fill = PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid")
+
+        sheet[f"A{row}"] = "PROJECT INFORMATION"
+        sheet[f"A{row}"].font = Font(size=12, bold=True)
+        sheet[f"A{row}"].fill = info_header_fill
+        sheet.merge_cells(f'A{row}:C{row}')
 
         row += 1
-        sheet[f"A{row}"] = "Customer:"
-        sheet[f"B{row}"] = project.get("customer", "")
-        sheet[f"A{row}"].font = Font(bold=True)
-
-        row += 1
-        sheet[f"A{row}"] = "Date:"
-        sheet[f"B{row}"] = datetime.now().strftime("%Y-%m-%d")
-        sheet[f"A{row}"].font = Font(bold=True)
-
-        # Totals
-        row += 2
-        sheet[f"A{row}"] = "TOTALS"
-        sheet[f"A{row}"].font = Font(size=14, bold=True)
-
-        row += 1
-        totals = [
-            ("Total Rooms:", project.get("total_rooms", 0)),
-            ("Total Paintable Area:", f"{project.get('total_sqft', 0):,.0f} sqft"),
-            ("Total Paint Needed:", f"{project.get('total_gallons', 0):,.0f} gallons"),
-            ("Total Labor Hours:", f"{project.get('total_labor_hours', 0):,.1f} hours"),
-            ("Estimated Cost:", f"${project.get('estimated_cost', 0):,.2f}"),
+        project_info = [
+            ("Project Name:", project.get("name", ""), ""),
+            ("Customer:", project.get("customer", ""), ""),
+            ("Address:", project.get("address", "N/A"), ""),
+            ("Project Type:", project.get("project_type", "Commercial").title(), ""),
+            ("Date Prepared:", datetime.now().strftime("%B %d, %Y"), ""),
+            ("Estimate Valid Until:", (datetime.now() + timedelta(days=30)).strftime("%B %d, %Y"), ""),
         ]
 
-        for label, value in totals:
+        for label, value, extra in project_info:
+            sheet[f"A{row}"] = label
+            sheet[f"B{row}"] = value
+            sheet[f"C{row}"] = extra
+            sheet[f"A{row}"].font = Font(bold=True)
+            row += 1
+
+        # Summary Totals Section
+        row += 1
+        sheet[f"A{row}"] = "PROJECT SUMMARY"
+        sheet[f"A{row}"].font = Font(size=12, bold=True)
+        sheet[f"A{row}"].fill = info_header_fill
+        sheet.merge_cells(f'A{row}:C{row}')
+
+        row += 1
+        # Create bordered table for totals
+        totals = [
+            ("Total Rooms:", project.get("total_rooms", 0), "rooms"),
+            ("Total Paintable Area:", f"{project.get('total_sqft', 0):,.0f}", "sqft"),
+            ("Total Paint Required:", f"{project.get('total_gallons', 0):,.0f}", "gallons"),
+            ("Total Labor Hours:", f"{project.get('total_labor_hours', 0):,.1f}", "hours"),
+            ("Material Cost:", f"${project.get('estimated_cost', 0) * 0.35:,.2f}", ""),
+            ("Labor Cost:", f"${project.get('estimated_cost', 0) * 0.65:,.2f}", ""),
+            ("", "", ""),  # Spacer
+            ("TOTAL ESTIMATE:", f"${project.get('estimated_cost', 0):,.2f}", ""),
+        ]
+
+        start_row = row
+        for label, value, unit in totals:
             sheet[f"A{row}"] = label
             sheet[f"B{row}"] = value
             sheet[f"A{row}"].font = Font(bold=True)
@@ -111,6 +142,67 @@ class ExportGenerator:
         # Auto-size columns
         for col in range(1, 6):
             sheet.column_dimensions[get_column_letter(col)].width = 20
+
+        # Terms & Conditions Section
+        row += 3
+        sheet[f"A{row}"] = "TERMS & CONDITIONS"
+        sheet[f"A{row}"].font = Font(size=12, bold=True)
+        sheet[f"A{row}"].fill = info_header_fill
+        sheet.merge_cells(f'A{row}:E{row}')
+
+        row += 1
+        terms = [
+            "• This estimate is valid for 30 days from the date of preparation",
+            "• Price includes all materials, labor, and supplies unless otherwise noted",
+            "• Assumes normal working conditions and access to all areas",
+            "• Additional charges may apply for extensive surface preparation, wallpaper removal, or lead paint",
+            "• Payment terms: 50% deposit, balance upon completion",
+            "• Warranty: 2 years on workmanship, manufacturer warranty on materials",
+            "• Change orders must be approved in writing and will be billed separately",
+            "• Final price subject to site inspection and condition assessment"
+        ]
+
+        for term in terms:
+            sheet[f"A{row}"] = term
+            sheet[f"A{row}"].font = Font(size=9)
+            sheet.merge_cells(f'A{row}:E{row}')
+            sheet[f"A{row}"].alignment = Alignment(wrap_text=True, vertical='top')
+            sheet.row_dimensions[row].height = 20
+            row += 1
+
+        # Signature Block
+        row += 2
+        sheet[f"A{row}"] = "Prepared by:"
+        sheet[f"A{row}"].font = Font(bold=True)
+        sheet[f"C{row}"] = "Customer Acceptance:"
+        sheet[f"C{row}"].font = Font(bold=True)
+
+        row += 1
+        sheet[f"A{row}"] = "____________________________"
+        sheet[f"C{row}"] = "____________________________"
+
+        row += 1
+        sheet[f"A{row}"] = "Signature"
+        sheet[f"A{row}"].font = Font(size=9, italic=True)
+        sheet[f"C{row}"] = "Signature"
+        sheet[f"C{row}"].font = Font(size=9, italic=True)
+
+        row += 2
+        sheet[f"A{row}"] = "____________________________"
+        sheet[f"C{row}"] = "____________________________"
+
+        row += 1
+        sheet[f"A{row}"] = "Date"
+        sheet[f"A{row}"].font = Font(size=9, italic=True)
+        sheet[f"C{row}"] = "Date"
+        sheet[f"C{row}"].font = Font(size=9, italic=True)
+
+        # Footer
+        row += 3
+        sheet[f"A{row}"] = "Generated by Painting.AI - Professional Estimating Software"
+        sheet[f"A{row}"].font = Font(size=8, italic=True, color="666666")
+        sheet.merge_cells(f'A{row}:E{row}')
+        sheet[f"A{row}"].alignment = Alignment(horizontal='center')
 
     def _create_takeoff_sheet(self, workbook, project: Dict, rooms: List[Dict]):
         """Create detailed takeoff sheet"""
