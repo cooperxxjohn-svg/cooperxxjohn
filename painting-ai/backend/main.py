@@ -20,6 +20,7 @@ from database import Database
 from export_generator import ExportGenerator
 from assembly_expansion import AssemblyExpander
 from auth_jwt import AuthManager, UserRegister, UserLogin, Token, get_auth_manager
+from payments import PaymentService, PLANS, get_payment_service
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -53,6 +54,7 @@ calculator = PaintCalculator()
 db = Database()
 exporter = ExportGenerator()
 auth_manager = AuthManager(db)
+payment_service = PaymentService(db)
 
 
 # Pydantic models
@@ -84,6 +86,16 @@ class EstimateParams(BaseModel):
     paint_price: float = 55.0  # $/gallon
     labor_rate: float = 50.0   # $/hour
     surface_type: str = "smooth_drywall"
+
+
+class CheckoutRequest(BaseModel):
+    plan: str  # starter, pro
+    success_url: str
+    cancel_url: str
+
+
+class PortalRequest(BaseModel):
+    return_url: str
 
 
 # Routes
@@ -193,6 +205,162 @@ async def logout():
     return {
         "message": "Logged out successfully. Remove tokens from client storage."
     }
+
+
+# ==============================================================================
+# PAYMENT ENDPOINTS (Phase 6)
+# ==============================================================================
+
+@app.get("/pricing/plans")
+async def get_pricing_plans():
+    """
+    Get available pricing plans
+
+    Returns plan details, pricing, features, and limits
+    """
+    return {
+        "plans": PLANS,
+        "currency": "USD",
+        "trial_days": 14
+    }
+
+
+@app.post("/checkout/create-session")
+async def create_checkout_session(
+    request: CheckoutRequest,
+    current_user: dict = Depends(auth_manager.get_current_user)
+):
+    """
+    Create Stripe checkout session
+
+    Starts subscription flow with 14-day trial.
+    Redirects to Stripe checkout page.
+
+    Args:
+        plan: "starter" or "pro"
+        success_url: Redirect URL after successful payment
+        cancel_url: Redirect URL if user cancels
+
+    Returns:
+        checkout_url: Stripe checkout page URL
+        session_id: Checkout session ID
+    """
+    try:
+        result = payment_service.create_checkout_session(
+            user_id=current_user["id"],
+            plan=request.plan,
+            success_url=request.success_url,
+            cancel_url=request.cancel_url
+        )
+
+        return result
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Checkout failed: {str(e)}")
+
+
+@app.post("/checkout/portal")
+async def create_portal_session(
+    request: PortalRequest,
+    current_user: dict = Depends(auth_manager.get_current_user)
+):
+    """
+    Create Stripe customer portal session
+
+    Allows customers to:
+    - Update payment method
+    - View invoices and payment history
+    - Cancel subscription
+    - Update billing information
+
+    Returns portal_url for redirect
+    """
+    try:
+        result = payment_service.create_portal_session(
+            user_id=current_user["id"],
+            return_url=request.return_url
+        )
+
+        return result
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Portal creation failed: {str(e)}")
+
+
+@app.post("/checkout/webhook")
+async def stripe_webhook(request: Request):
+    """
+    Stripe webhook handler
+
+    Handles events:
+    - checkout.session.completed - Successful subscription
+    - customer.subscription.updated - Subscription changes
+    - customer.subscription.deleted - Cancellation
+    - invoice.payment_succeeded - Payment received
+    - invoice.payment_failed - Payment failed
+
+    Signature verification with STRIPE_WEBHOOK_SECRET
+    """
+    import stripe
+    from payments import STRIPE_WEBHOOK_SECRET
+
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=500, detail="Webhook secret not configured")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    # Handle events
+    event_type = event["type"]
+    data = event["data"]["object"]
+
+    if event_type == "checkout.session.completed":
+        payment_service.handle_checkout_completed(data)
+
+    elif event_type == "customer.subscription.updated":
+        payment_service.handle_subscription_updated(data)
+
+    elif event_type == "customer.subscription.deleted":
+        payment_service.handle_subscription_updated(data)
+
+    elif event_type == "invoice.payment_succeeded":
+        payment_service.handle_payment_succeeded(data)
+
+    elif event_type == "invoice.payment_failed":
+        payment_service.handle_payment_failed(data)
+
+    return {"status": "success", "event": event_type}
+
+
+@app.get("/usage/stats")
+async def get_usage_statistics(
+    current_user: dict = Depends(auth_manager.get_current_user)
+):
+    """
+    Get usage statistics for current billing period
+
+    Returns:
+    - Projects used this month
+    - Projects limit (based on plan)
+    - Projects remaining
+    - API access enabled
+    - Team members limit
+    """
+    stats = payment_service.get_usage_stats(current_user["id"])
+    return stats
 
 
 # ==============================================================================

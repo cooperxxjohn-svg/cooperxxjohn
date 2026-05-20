@@ -170,6 +170,31 @@ class Database:
                 return user
         return None
 
+    def get_all_users(self) -> List[Dict]:
+        """Get all users"""
+        users_file = self.data_dir / "users.json"
+
+        if not users_file.exists():
+            return []
+
+        users = self._read_json(users_file)
+        return list(users.values())
+
+    def update_user(self, user_id: str, updates: Dict):
+        """Update user data"""
+        users_file = self.data_dir / "users.json"
+
+        if not users_file.exists():
+            raise ValueError(f"User {user_id} not found")
+
+        users = self._read_json(users_file)
+
+        if user_id not in users:
+            raise ValueError(f"User {user_id} not found")
+
+        users[user_id].update(updates)
+        self._write_json(users_file, users)
+
     # Organizations (Phase 3)
     def save_organization(self, org: Dict):
         """Save a new organization"""
