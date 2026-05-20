@@ -122,6 +122,53 @@ class Database:
             del rooms[room_id]
             self._write_json(self.rooms_file, rooms)
 
+    # Users (Phase 3)
+    def save_user(self, user: Dict):
+        """Save a new user"""
+        users_file = self.data_dir / "users.json"
+
+        if not users_file.exists():
+            self._write_json(users_file, {})
+
+        users = self._read_json(users_file)
+        users[user["id"]] = user
+        self._write_json(users_file, users)
+
+    def get_user_by_id(self, user_id: str) -> Optional[Dict]:
+        """Get user by ID"""
+        users_file = self.data_dir / "users.json"
+
+        if not users_file.exists():
+            return None
+
+        users = self._read_json(users_file)
+        return users.get(user_id)
+
+    def get_user_by_email(self, email: str) -> Optional[Dict]:
+        """Get user by email"""
+        users_file = self.data_dir / "users.json"
+
+        if not users_file.exists():
+            return None
+
+        users = self._read_json(users_file)
+        for user in users.values():
+            if user.get("email") == email:
+                return user
+        return None
+
+    # Organizations (Phase 3)
+    def save_organization(self, org: Dict):
+        """Save a new organization"""
+        orgs_file = self.data_dir / "organizations.json"
+
+        if not orgs_file.exists():
+            self._write_json(orgs_file, {})
+
+        orgs = self._read_json(orgs_file)
+        orgs[org["id"]] = org
+        self._write_json(orgs_file, orgs)
+
 
 if __name__ == "__main__":
     # Test the database

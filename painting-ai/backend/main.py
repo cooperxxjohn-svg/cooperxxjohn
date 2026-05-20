@@ -3,7 +3,7 @@ Painting.ai API Server
 FastAPI backend for AI-powered painting takeoffs
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -19,6 +19,7 @@ from painting_detector import PaintingDetector, PaintCalculator, Room, Surface
 from database import Database
 from export_generator import ExportGenerator
 from assembly_expansion import AssemblyExpander
+from auth_jwt import AuthManager, UserRegister, UserLogin, Token, get_auth_manager
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -51,6 +52,7 @@ detector = PaintingDetector(ANTHROPIC_API_KEY)
 calculator = PaintCalculator()
 db = Database()
 exporter = ExportGenerator()
+auth_manager = AuthManager(db)
 
 
 # Pydantic models
@@ -102,6 +104,100 @@ async def health_check():
         "database": "connected" if db.is_connected() else "disconnected"
     }
 
+
+# ==============================================================================
+# AUTHENTICATION ENDPOINTS (Phase 3)
+# ==============================================================================
+
+@app.post("/auth/register", response_model=dict)
+async def register(user_data: UserRegister):
+    """
+    Register a new user account
+
+    Creates user with:
+    - Hashed password (bcrypt)
+    - Unique API key
+    - 14-day trial
+    - Optional organization
+
+    Returns user details and auth tokens
+    """
+    try:
+        user = auth_manager.register_user(user_data)
+
+        # Auto-login after registration
+        login_data = UserLogin(email=user_data.email, password=user_data.password)
+        tokens = auth_manager.login_user(login_data)
+
+        return {
+            "user": user,
+            "tokens": tokens.dict(),
+            "message": "Registration successful. Welcome to Painting.ai!"
+        }
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+
+@app.post("/auth/login", response_model=Token)
+async def login(login_data: UserLogin):
+    """
+    Login with email and password
+
+    Returns:
+    - access_token: Valid for 24 hours
+    - refresh_token: Valid for 30 days
+    """
+    return auth_manager.login_user(login_data)
+
+
+@app.post("/auth/refresh", response_model=Token)
+async def refresh_token(refresh_token: str):
+    """
+    Refresh access token using refresh token
+
+    Extends session without requiring re-login
+    """
+    return auth_manager.refresh_access_token(refresh_token)
+
+
+@app.get("/auth/me")
+async def get_current_user_info(current_user: dict = Depends(auth_manager.get_current_user)):
+    """
+    Get current user information from JWT token
+
+    Requires: Authorization: Bearer <access_token>
+
+    Returns user profile with:
+    - id, email, name
+    - plan, subscription_status
+    - API key
+    - settings
+    """
+    return {
+        "user": current_user,
+        "message": "Authenticated successfully"
+    }
+
+
+@app.post("/auth/logout")
+async def logout():
+    """
+    Logout (client-side token removal)
+
+    Since JWT tokens are stateless, logout is handled client-side
+    by removing the token. Token will expire naturally after 24 hours.
+    """
+    return {
+        "message": "Logged out successfully. Remove tokens from client storage."
+    }
+
+
+# ==============================================================================
+# PROJECT ENDPOINTS
+# ==============================================================================
 
 @app.post("/projects", response_model=ProjectResponse)
 async def create_project(project: ProjectCreate):
