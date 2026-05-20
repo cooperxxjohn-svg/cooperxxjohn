@@ -1,0 +1,64 @@
+import { Outlet, Link, useLocation } from 'react-router-dom'
+import { PaintBucket, Home, Plus } from 'lucide-react'
+
+export default function Layout() {
+  const location = useLocation()
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <PaintBucket className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-gray-900">Painting.ai</span>
+            </Link>
+
+            {/* Navigation */}
+            <nav className="flex items-center space-x-4">
+              <Link
+                to="/"
+                className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
+                  location.pathname === '/'
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                <span>Projects</span>
+              </Link>
+
+              <Link
+                to="/new"
+                className="btn btn-primary flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Project</span>
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Outlet />
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p className="text-sm text-gray-500 text-center">
+            &copy; 2026 Painting.ai - AI-Powered Takeoffs for Painting Contractors
+          </p>
+        </div>
+      </footer>
+    </div>
+  )
+}
