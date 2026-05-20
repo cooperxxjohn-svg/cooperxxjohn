@@ -1,8 +1,19 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { PaintBucket, Home, Plus } from 'lucide-react'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { PaintBucket, Home, Plus, User, LogOut } from 'lucide-react'
+import { useState } from 'react'
+import useAuthStore from '../store/authStore'
 
 export default function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const user = useAuthStore((state) => state.user)
+  const clearAuth = useAuthStore((state) => state.clearAuth)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+
+  const handleLogout = () => {
+    clearAuth()
+    navigate('/login')
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -33,12 +44,42 @@ export default function Layout() {
               </Link>
 
               <Link
-                to="/new"
+                to="/upload"
                 className="btn btn-primary flex items-center space-x-2"
               >
                 <Plus className="w-4 h-4" />
                 <span>New Project</span>
               </Link>
+
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                >
+                  <User className="w-4 h-4" />
+                  <span className="text-sm">{user?.name || 'User'}</span>
+                </button>
+
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                    <div className="px-4 py-2 border-b border-gray-200">
+                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Plan: <span className="font-medium">{user?.plan || 'trial'}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
         </div>

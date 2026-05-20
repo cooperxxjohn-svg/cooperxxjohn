@@ -1,8 +1,10 @@
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Download, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Download, Loader2, AlertCircle, RefreshCw, Zap } from 'lucide-react'
 import { getProject, getProjectRooms, generateEstimate } from '../utils/api'
 import { useState } from 'react'
+import RoomEditor from '../components/RoomEditor'
+import api from '../utils/api'
 
 export default function ProjectView() {
   const { projectId } = useParams()
@@ -26,6 +28,19 @@ export default function ProjectView() {
 
   const estimateMutation = useMutation({
     mutationFn: () => generateEstimate(projectId, estimateParams),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['project', projectId])
+    },
+  })
+
+  const assemblyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post(`/projects/${projectId}/assembly-expansion`, {
+        paint_type: estimateParams.surface_type,
+        labor_rate: estimateParams.labor_rate,
+      })
+      return response.data
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['project', projectId])
     },
@@ -205,80 +220,48 @@ export default function ProjectView() {
           </div>
         </div>
 
-        <button
-          onClick={handleGenerateEstimate}
-          className="btn btn-primary flex items-center space-x-2"
-          disabled={estimateMutation.isPending}
-        >
-          {estimateMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Generating...</span>
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4" />
-              <span>Generate Estimate</span>
-            </>
-          )}
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleGenerateEstimate}
+            className="btn btn-secondary flex items-center space-x-2"
+            disabled={estimateMutation.isPending}
+          >
+            {estimateMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                <span>Generate Simple Estimate</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={() => assemblyMutation.mutate()}
+            className="btn btn-primary flex items-center space-x-2"
+            disabled={assemblyMutation.isPending}
+          >
+            {assemblyMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Expanding...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4" />
+                <span>Expand to Detailed Assembly</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Rooms List */}
+      {/* Rooms List with Editor */}
       <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Rooms ({rooms.length})
-        </h2>
-
-        {rooms.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            {project.status === 'processing' ? (
-              <div>
-                <Loader2 className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-2" />
-                <p>Processing drawing...</p>
-              </div>
-            ) : (
-              <p>No rooms detected yet</p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rooms.map((room) => (
-              <div key={room.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{room.name}</h3>
-                    {room.dimensions && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        {room.dimensions.length}' × {room.dimensions.width}' × {room.dimensions.height}'
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Total Area</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {room.total_area?.toFixed(0)} sqft
-                    </p>
-                  </div>
-                </div>
-
-                {/* Surfaces */}
-                {room.surfaces && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 pt-3 border-t">
-                    {Object.entries(room.surfaces).map(([name, surface]) => (
-                      <div key={name} className="text-center">
-                        <p className="text-xs text-gray-600 uppercase">{name}</p>
-                        <p className="text-sm font-medium text-gray-900 mt-1">
-                          {surface.area?.toFixed(0)} sqft
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <RoomEditor projectId={projectId} rooms={rooms} />
       </div>
     </div>
   )
