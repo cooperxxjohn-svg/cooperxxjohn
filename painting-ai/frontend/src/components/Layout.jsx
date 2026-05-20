@@ -117,10 +117,29 @@ export default function Layout() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-sm text-gray-500 text-center">
-            &copy; 2026 Painting.ai - AI-Powered Takeoffs for Painting Contractors
-          </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm text-gray-500 mb-4 md:mb-0">
+              &copy; 2026 Painting.ai - AI-Powered Takeoffs for Painting Contractors
+            </p>
+            <div className="flex space-x-6">
+              <Link to="/help" className="text-sm text-gray-600 hover:text-gray-900">
+                Help
+              </Link>
+              <Link to="/terms" className="text-sm text-gray-600 hover:text-gray-900">
+                Terms
+              </Link>
+              <Link to="/privacy" className="text-sm text-gray-600 hover:text-gray-900">
+                Privacy
+              </Link>
+              <a
+                href="mailto:support@painting.ai"
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Contact
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
