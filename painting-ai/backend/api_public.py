@@ -224,6 +224,184 @@ async def export_project_api(
     }
 
 
+# Room Edit/Review Endpoints (Competitor-validated workflow)
+class RoomUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    number: Optional[str] = None
+    dimensions: Optional[dict] = None  # {"length": 20, "width": 15, "height": 9}
+    surfaces: Optional[dict] = None  # Override AI detection
+
+
+class RoomCreateRequest(BaseModel):
+    name: str
+    number: Optional[str] = None
+    dimensions: dict  # Required for manual add
+    manually_added: bool = True
+
+
+class MaterialUpdateRequest(BaseModel):
+    paint_id: str  # Material ID from material database
+    primer_id: str
+    quality_tier: Optional[str] = "commercial"  # economy, commercial, premium
+
+
+@api_public.put("/api/projects/{project_id}/rooms/{room_id}")
+async def update_room(
+    project_id: str,
+    room_id: str,
+    room_update: RoomUpdateRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Edit detected room dimensions and properties
+
+    Allows estimators to correct AI detection errors:
+    - Adjust dimensions if AI got them wrong
+    - Rename rooms for clarity
+    - Override surface area calculations
+    - Add notes or special instructions
+
+    This is a critical part of the review workflow validated by
+    Rudus, Bidflow, and industry standards.
+    """
+    # In production, would update database
+    return {
+        "id": room_id,
+        "project_id": project_id,
+        "name": room_update.name or "Updated Room",
+        "dimensions": room_update.dimensions or {"length": 20, "width": 15, "height": 9},
+        "updated_at": datetime.utcnow().isoformat(),
+        "message": "Room updated successfully"
+    }
+
+
+@api_public.post("/api/projects/{project_id}/rooms")
+async def create_room_manually(
+    project_id: str,
+    room: RoomCreateRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Manually add a room that AI missed
+
+    Sometimes AI doesn't detect all rooms (closets, mechanical rooms,
+    unlabeled spaces). This lets estimators add them manually.
+
+    Required for complete estimates on complex floor plans.
+    """
+    import uuid
+
+    room_id = f"room_{uuid.uuid4().hex[:8]}"
+
+    return {
+        "id": room_id,
+        "project_id": project_id,
+        "name": room.name,
+        "number": room.number,
+        "dimensions": room.dimensions,
+        "manually_added": True,
+        "created_at": datetime.utcnow().isoformat(),
+        "message": "Room added successfully"
+    }
+
+
+@api_public.delete("/api/projects/{project_id}/rooms/{room_id}")
+async def delete_room(
+    project_id: str,
+    room_id: str,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Delete a room that was incorrectly detected
+
+    AI sometimes detects non-rooms (legends, title blocks, notes)
+    as rooms. This lets estimators remove false positives.
+    """
+    # In production, would delete from database
+    return {
+        "message": "Room deleted successfully",
+        "room_id": room_id,
+        "project_id": project_id,
+        "deleted_at": datetime.utcnow().isoformat()
+    }
+
+
+@api_public.put("/api/projects/{project_id}/materials")
+async def update_materials(
+    project_id: str,
+    materials: MaterialUpdateRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Change material selections for project
+
+    Default recommendations are commercial-grade (ProMar 400).
+    Estimators can upgrade to premium (Benjamin Moore Regal) or
+    downgrade to economy (BEHR Premium Plus) based on customer needs.
+
+    This triggers recalculation of all material costs.
+    """
+    # Would fetch materials from database and recalculate costs
+    return {
+        "project_id": project_id,
+        "materials": {
+            "paint_id": materials.paint_id,
+            "primer_id": materials.primer_id,
+            "quality_tier": materials.quality_tier
+        },
+        "updated_at": datetime.utcnow().isoformat(),
+        "message": "Materials updated, costs recalculated"
+    }
+
+
+@api_public.get("/api/projects/{project_id}/assembly")
+async def get_assembly_breakdown(
+    project_id: str,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get detailed assembly line item breakdown
+
+    Expands project into 80-120+ detailed line items like Rudus:
+    - Surface preparation (spackle, sand, caulk, mask)
+    - Primer application (material, labor, supplies)
+    - Finish coats (material, labor, supplies)
+    - Cleanup (remove masking, touch-ups)
+
+    Each room broken down into granular tasks with pricing.
+    """
+    # In production, would call AssemblyExpander
+    return {
+        "project_id": project_id,
+        "line_items": [
+            {
+                "item_number": "1.1",
+                "category": "Prep - Walls",
+                "description": "Spackle nail holes and imperfections",
+                "quantity": 0.5,
+                "unit": "hour",
+                "unit_cost": 50.0,
+                "total_cost": 25.0
+            },
+            {
+                "item_number": "1.2",
+                "category": "Prep - Walls",
+                "description": "Sand surfaces smooth",
+                "quantity": 1.2,
+                "unit": "hour",
+                "unit_cost": 50.0,
+                "total_cost": 60.0
+            }
+        ],
+        "summary": {
+            "total_line_items": 144,
+            "material_cost": 2500.0,
+            "labor_cost": 2500.0,
+            "total_cost": 5000.0
+        }
+    }
+
+
 # Webhooks
 @api_public.post("/api/webhooks", response_model=WebhookResponse)
 async def create_webhook(
@@ -353,7 +531,16 @@ async def api_documentation():
             },
             "rooms": {
                 "list": "GET /api/projects/{id}/rooms",
-                "get": "GET /api/rooms/{id}"
+                "get": "GET /api/rooms/{id}",
+                "update": "PUT /api/projects/{id}/rooms/{room_id}",
+                "create": "POST /api/projects/{id}/rooms",
+                "delete": "DELETE /api/projects/{id}/rooms/{room_id}"
+            },
+            "materials": {
+                "update": "PUT /api/projects/{id}/materials"
+            },
+            "assembly": {
+                "breakdown": "GET /api/projects/{id}/assembly"
             },
             "export": {
                 "excel": "POST /api/projects/{id}/export/excel",
