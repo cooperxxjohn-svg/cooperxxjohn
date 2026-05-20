@@ -35,7 +35,7 @@ export default function NotFound() {
           </button>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="w-full btn btn-primary flex items-center justify-center space-x-2"
           >
             <Home className="w-4 h-4" />
@@ -48,13 +48,13 @@ export default function NotFound() {
           <p className="text-sm text-gray-600 mb-4">Looking for something?</p>
           <div className="flex justify-center space-x-6 text-sm">
             <button
-              onClick={() => navigate('/upload')}
+              onClick={() => navigate('/dashboard/upload')}
               className="text-primary-600 hover:text-primary-700 font-medium"
             >
               Upload Project
             </button>
             <button
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/dashboard/settings')}
               className="text-primary-600 hover:text-primary-700 font-medium"
             >
               Settings

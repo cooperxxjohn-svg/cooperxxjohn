@@ -22,7 +22,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
+            <Link to="/dashboard" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <PaintBucket className="w-5 h-5 text-white" />
               </div>
@@ -32,9 +32,9 @@ export default function Layout() {
             {/* Navigation */}
             <nav className="flex items-center space-x-4">
               <Link
-                to="/"
+                to="/dashboard"
                 className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
-                  location.pathname === '/'
+                  location.pathname === '/dashboard'
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
@@ -44,7 +44,7 @@ export default function Layout() {
               </Link>
 
               <Link
-                to="/upload"
+                to="/dashboard/upload"
                 className="btn btn-primary flex items-center space-x-2"
               >
                 <Plus className="w-4 h-4" />
@@ -71,21 +71,21 @@ export default function Layout() {
                       </p>
                     </div>
                     <Link
-                      to="/settings"
+                      to="/dashboard/settings"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setShowUserMenu(false)}
                     >
                       Settings
                     </Link>
                     <Link
-                      to="/settings?tab=billing"
+                      to="/dashboard/settings?tab=billing"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setShowUserMenu(false)}
                     >
                       Billing
                     </Link>
                     <Link
-                      to="/settings?tab=api"
+                      to="/dashboard/settings?tab=api"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setShowUserMenu(false)}
                     >

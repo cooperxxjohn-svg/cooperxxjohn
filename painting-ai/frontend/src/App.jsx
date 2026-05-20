@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
+import ToastContainer from './components/ToastContainer'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -27,14 +29,22 @@ const queryClient = new QueryClient({
 })
 
 function App() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <ToastContainer />
           <Routes>
-            {/* Public routes */}
+            {/* Public marketing page */}
+            <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />} />
+
+            {/* Auth routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+
+            {/* Public pages */}
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/success" element={<Success />} />
             <Route path="/help" element={<Help />} />
@@ -43,7 +53,7 @@ function App() {
 
             {/* Protected routes */}
             <Route
-              path="/"
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Layout />

@@ -182,7 +182,7 @@ export default function Success() {
             {/* Quick Actions */}
             <div className="space-y-3">
               <button
-                onClick={() => navigate('/upload')}
+                onClick={() => navigate('/dashboard/upload')}
                 className="w-full btn btn-primary flex items-center justify-center space-x-2"
               >
                 <span>Upload Your First Project</span>
@@ -190,7 +190,7 @@ export default function Success() {
               </button>
 
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/dashboard')}
                 className="w-full btn btn-secondary flex items-center justify-center space-x-2"
               >
                 <span>Go to Dashboard</span>
@@ -198,7 +198,7 @@ export default function Success() {
 
               {subscriptionDetails?.plan === 'pro' && (
                 <button
-                  onClick={() => navigate('/settings?tab=api')}
+                  onClick={() => navigate('/dashboard/settings?tab=api')}
                   className="w-full btn btn-secondary flex items-center justify-center space-x-2"
                 >
                   <span>View API Keys</span>

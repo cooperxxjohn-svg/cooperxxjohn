@@ -32,7 +32,7 @@ export default function Settings() {
   const handleBillingPortal = async () => {
     try {
       const response = await api.post('/checkout/portal', {
-        return_url: window.location.origin + '/settings?tab=billing',
+        return_url: window.location.origin + '/dashboard/settings?tab=billing',
       });
       window.location.href = response.data.portal_url;
     } catch (error) {
