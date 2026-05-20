@@ -62,21 +62,44 @@ export default function Layout() {
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                    <div className="px-4 py-2 border-b border-gray-200">
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                    <div className="px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
+                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Plan: <span className="font-medium">{user?.plan || 'trial'}</span>
+                        Plan: <span className="font-medium capitalize">{user?.plan || 'trial'}</span>
                       </p>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                    <Link
+                      to="/settings"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
                     >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign out</span>
-                    </button>
+                      Settings
+                    </Link>
+                    <Link
+                      to="/settings?tab=billing"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Billing
+                    </Link>
+                    <Link
+                      to="/settings?tab=api"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      API Keys
+                    </Link>
+                    <div className="border-t border-gray-200 mt-1 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign out</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -7,6 +7,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import ProjectView from './pages/ProjectView'
 import Upload from './pages/Upload'
+import Settings from './pages/Settings'
+import Pricing from './pages/Pricing'
 import useAuthStore from './store/authStore'
 
 const queryClient = new QueryClient({
@@ -26,6 +28,7 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/pricing" element={<Pricing />} />
 
           {/* Protected routes */}
           <Route
@@ -39,6 +42,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="upload" element={<Upload />} />
             <Route path="projects/:projectId" element={<ProjectView />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
 
           {/* Redirect unknown routes */}
