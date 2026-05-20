@@ -21,6 +21,8 @@ from export_generator import ExportGenerator
 from assembly_expansion import AssemblyExpander
 from auth_jwt import AuthManager, UserRegister, UserLogin, Token, get_auth_manager
 from payments import PaymentService, PLANS, get_payment_service
+from email_service import get_email_service
+import background_tasks as bg_tasks
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -55,6 +57,7 @@ db = Database()
 exporter = ExportGenerator()
 auth_manager = AuthManager(db)
 payment_service = PaymentService(db)
+email_service = get_email_service()
 
 
 # Pydantic models
@@ -122,7 +125,7 @@ async def health_check():
 # ==============================================================================
 
 @app.post("/auth/register", response_model=dict)
-async def register(user_data: UserRegister):
+async def register(user_data: UserRegister, background_tasks: BackgroundTasks):
     """
     Register a new user account
 
@@ -140,6 +143,12 @@ async def register(user_data: UserRegister):
         # Auto-login after registration
         login_data = UserLogin(email=user_data.email, password=user_data.password)
         tokens = auth_manager.login_user(login_data)
+
+        # Send welcome email in background
+        background_tasks.add_task(
+            bg_tasks.send_welcome_email_async,
+            user
+        )
 
         return {
             "user": user,
