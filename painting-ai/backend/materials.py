@@ -4,6 +4,7 @@ Real-time pricing from suppliers like Sherwin-Williams, Benjamin Moore
 """
 
 import requests
+import os
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import json
