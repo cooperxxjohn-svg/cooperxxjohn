@@ -392,8 +392,8 @@ class Activity(Base):
     action = Column(String, nullable=False)  # created, updated, exported, submitted, etc.
     description = Column(Text)
 
-    # Metadata
-    metadata = Column(JSON, default={})
+    # Event metadata (renamed from 'metadata' to avoid SQLAlchemy reserved keyword)
+    event_metadata = Column(JSON, default={})
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
