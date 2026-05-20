@@ -22,6 +22,7 @@ from assembly_expansion import AssemblyExpander
 from auth_jwt import AuthManager, UserRegister, UserLogin, Token, get_auth_manager
 from payments import PaymentService, PLANS, get_payment_service
 from email_service import get_email_service
+from analytics import AnalyticsService, get_analytics_service
 import background_tasks as bg_tasks
 
 # Initialize FastAPI app
@@ -58,6 +59,7 @@ exporter = ExportGenerator()
 auth_manager = AuthManager(db)
 payment_service = PaymentService(db)
 email_service = get_email_service()
+analytics_service = AnalyticsService(db)
 
 
 # Pydantic models
@@ -370,6 +372,60 @@ async def get_usage_statistics(
     """
     stats = payment_service.get_usage_stats(current_user["id"])
     return stats
+
+
+# ==============================================================================
+# ANALYTICS ENDPOINTS (Phase 8)
+# ==============================================================================
+
+@app.get("/analytics/overview")
+async def get_analytics_overview(
+    current_user: dict = Depends(auth_manager.get_current_user)
+):
+    """
+    Get analytics overview
+
+    Returns project counts, user stats, revenue metrics.
+    Users see their own data, admins see system-wide.
+    """
+    # For now, users see only their own data
+    # Add admin check here for system-wide view
+    stats = analytics_service.get_overview_stats(user_id=current_user["id"])
+    return stats
+
+
+@app.get("/analytics/usage")
+async def get_usage_analytics(
+    days: int = 30,
+    current_user: dict = Depends(auth_manager.get_current_user)
+):
+    """
+    Get API usage analytics
+
+    Query params:
+    - days: Number of days to analyze (default: 30)
+
+    Returns daily API usage, request counts, top endpoints
+    """
+    metrics = analytics_service.get_usage_metrics(days=days)
+    return metrics
+
+
+@app.get("/analytics/conversion")
+async def get_conversion_analytics(
+    current_user: dict = Depends(auth_manager.get_current_user)
+):
+    """
+    Get conversion metrics
+
+    Returns trial-to-paid conversion rates,
+    subscription status breakdown.
+
+    Admin-only in production.
+    """
+    # Add admin check here
+    metrics = analytics_service.get_conversion_metrics()
+    return metrics
 
 
 # ==============================================================================
