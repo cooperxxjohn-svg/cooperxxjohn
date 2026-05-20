@@ -15,9 +15,10 @@ from datetime import datetime
 import asyncio
 from pathlib import Path
 
-from painting_detector import PaintingDetector, PaintCalculator
+from painting_detector import PaintingDetector, PaintCalculator, Room, Surface
 from database import Database
 from export_generator import ExportGenerator
+from assembly_expansion import AssemblyExpander
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -148,21 +149,70 @@ async def upload_drawing(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = None
 ):
-    """Upload and process a drawing"""
+    """Upload and process a drawing with validation and organized storage"""
 
     # Verify project exists
     project = db.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Save uploaded file
-    file_id = str(uuid.uuid4())
-    file_ext = os.path.splitext(file.filename)[1]
-    file_path = UPLOAD_DIR / f"{file_id}{file_ext}"
+    # File validation
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB limit
+    ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
 
+    # Validate file extension
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
+    # Read file content and validate size
+    content = await file.read()
+    file_size = len(content)
+
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
+        )
+
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Empty file uploaded")
+
+    # Validate file is not corrupted (basic check for PDF)
+    if file_ext == ".pdf" and not content.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="Corrupted or invalid PDF file")
+
+    # Create organized storage structure: uploads/{project_id}/{file_id}.pdf
+    project_upload_dir = UPLOAD_DIR / project_id
+    project_upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_id = str(uuid.uuid4())
+    file_path = project_upload_dir / f"{file_id}{file_ext}"
+
+    # Save file
     with open(file_path, "wb") as f:
-        content = await file.read()
         f.write(content)
+
+    # Initialize processing status
+    processing_status = {
+        "file_id": file_id,
+        "filename": file.filename,
+        "status": "queued",
+        "progress": 0,
+        "message": "File uploaded, queued for processing",
+        "uploaded_at": datetime.utcnow().isoformat(),
+        "file_size": file_size
+    }
+
+    # Store status in project data
+    project_data = project.copy()
+    if "uploads" not in project_data:
+        project_data["uploads"] = {}
+    project_data["uploads"][file_id] = processing_status
+    db.update_project(project_id, project_data)
 
     # Update project status
     db.update_project(project_id, {"status": "processing"})
@@ -177,21 +227,65 @@ async def upload_drawing(
         )
 
     return {
-        "message": "File uploaded successfully",
+        "message": "File uploaded successfully and queued for processing",
         "file_id": file_id,
         "filename": file.filename,
-        "status": "processing"
+        "file_size": file_size,
+        "status": "queued",
+        "project_id": project_id
     }
 
 
+@app.get("/projects/{project_id}/status")
+async def get_project_status(project_id: str):
+    """Get real-time processing status for a project"""
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Get upload statuses
+    uploads = project.get("uploads", {})
+
+    return {
+        "project_id": project_id,
+        "status": project.get("status", "created"),
+        "total_rooms": project.get("total_rooms", 0),
+        "total_sqft": project.get("total_sqft", 0.0),
+        "uploads": uploads,
+        "error": project.get("error"),
+        "updated_at": project.get("updated_at", project.get("created_at"))
+    }
+
+
+def update_processing_status(project_id: str, file_id: str, status: str, progress: int, message: str):
+    """Helper to update processing status"""
+    project = db.get_project(project_id)
+    if project and "uploads" in project:
+        if file_id in project["uploads"]:
+            project["uploads"][file_id].update({
+                "status": status,
+                "progress": progress,
+                "message": message,
+                "updated_at": datetime.utcnow().isoformat()
+            })
+            db.update_project(project_id, {"uploads": project["uploads"], "updated_at": datetime.utcnow().isoformat()})
+
+
 async def process_drawing(project_id: str, file_path: str, file_id: str):
-    """Background task to process a drawing"""
+    """Background task to process a drawing with status updates"""
     try:
+        # Update status: Starting
+        update_processing_status(project_id, file_id, "processing", 10, "Starting AI analysis...")
+
         # Detect rooms and surfaces
+        update_processing_status(project_id, file_id, "processing", 30, "Analyzing drawing with AI...")
         detection = detector.analyze_drawing(file_path)
 
+        # Update status: AI Complete
+        update_processing_status(project_id, file_id, "processing", 60, f"Detected {detection.total_rooms} rooms, saving...")
+
         # Save rooms to database
-        for room in detection.rooms:
+        for i, room in enumerate(detection.rooms):
             room_id = str(uuid.uuid4())
 
             room_data = {
@@ -215,7 +309,13 @@ async def process_drawing(project_id: str, file_path: str, file_id: str):
 
             db.save_room(room_data)
 
+            # Update progress
+            progress = 60 + int((i + 1) / len(detection.rooms) * 30)
+            update_processing_status(project_id, file_id, "processing", progress, f"Saved room {i+1}/{len(detection.rooms)}")
+
         # Update project totals
+        update_processing_status(project_id, file_id, "processing", 95, "Calculating project totals...")
+
         project = db.get_project(project_id)
         rooms = db.get_project_rooms(project_id)
 
@@ -224,14 +324,31 @@ async def process_drawing(project_id: str, file_path: str, file_id: str):
         db.update_project(project_id, {
             "status": "complete",
             "total_rooms": len(rooms),
-            "total_sqft": total_sqft
+            "total_sqft": total_sqft,
+            "updated_at": datetime.utcnow().isoformat()
         })
 
+        # Final status update
+        update_processing_status(
+            project_id,
+            file_id,
+            "complete",
+            100,
+            f"Complete! Detected {len(rooms)} rooms, {total_sqft:.0f} sqft total"
+        )
+
     except Exception as e:
-        print(f"Error processing drawing: {e}")
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error processing drawing: {error_details}")
+
+        # Update status: Failed
+        update_processing_status(project_id, file_id, "failed", 0, f"Error: {str(e)}")
+
         db.update_project(project_id, {
             "status": "failed",
-            "error": str(e)
+            "error": str(e),
+            "updated_at": datetime.utcnow().isoformat()
         })
 
 
@@ -336,6 +453,74 @@ async def generate_estimate(project_id: str, params: EstimateParams):
             "total_cost": total_cost,
             "cost_per_sqft": total_cost / project["total_sqft"] if project["total_sqft"] > 0 else 0
         }
+    }
+
+
+@app.post("/projects/{project_id}/assembly-expansion")
+async def expand_assembly(
+    project_id: str,
+    paint_type: str = "commercial",  # economy, commercial, premium
+    labor_rate: float = 50.0
+):
+    """
+    Expand project into detailed assembly line items (80-120+ items)
+
+    Matches Rudus workflow: breaks each room into granular tasks:
+    - Surface preparation (spackle, sand, caulk, mask)
+    - Primer application (material, labor, supplies)
+    - Finish coats (material, labor, supplies)
+    - Cleanup (remove masking, touch-ups)
+    """
+
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    rooms_data = db.get_project_rooms(project_id)
+    if not rooms_data:
+        raise HTTPException(status_code=400, detail="No rooms detected. Upload and process a drawing first.")
+
+    # Convert room data to Room objects
+    room_objects = []
+    for r in rooms_data:
+        room = Room(
+            id=r["id"],
+            name=r["name"],
+            number=r.get("number"),
+            dimensions=r.get("dimensions", {}),
+            surfaces={}
+        )
+
+        # Reconstruct surfaces
+        for surface_name, surface_data in r.get("surfaces", {}).items():
+            room.surfaces[surface_name] = Surface(
+                type=surface_data["type"],
+                area=surface_data["area"],
+                linear_feet=surface_data.get("linear_feet"),
+                height=surface_data.get("height"),
+                deductions=surface_data.get("deductions", 0.0)
+            )
+
+        room.total_area = r.get("total_area", 0.0)
+        room_objects.append(room)
+
+    # Expand project into line items
+    expander = AssemblyExpander(labor_rate=labor_rate)
+    expanded = expander.expand_project(room_objects, paint_type=paint_type)
+
+    # Store expanded assembly in project
+    db.update_project(project_id, {
+        "assembly_expansion": expanded,
+        "assembly_expanded_at": datetime.utcnow().isoformat()
+    })
+
+    return {
+        "project_id": project_id,
+        "paint_type": paint_type,
+        "labor_rate": labor_rate,
+        "rooms": expanded["rooms"],
+        "summary": expanded["summary"],
+        "message": f"Expanded to {expanded['summary']['total_line_items']} detailed line items"
     }
 
 
