@@ -453,16 +453,20 @@ class PaintCalculator:
     def calculate_room_estimate(self, room: Room, paint_price: float = 60.0,
                                primer_price: float = 43.0, labor_rate: float = 60.0,
                                overhead_percent: float = 0.15, profit_percent: float = 0.25) -> Dict:
-        """Calculate complete estimate for a room"""
+        """Calculate complete estimate for a room - Updated with 2026 industry standards"""
         estimate = {
             "room_id": room.id,
             "room_name": room.name,
             "surfaces": {},
             "totals": {
+                "primer_gallons": 0,
                 "paint_gallons": 0,
                 "labor_hours": 0,
                 "material_cost": 0,
                 "labor_cost": 0,
+                "subtotal": 0,
+                "overhead": 0,
+                "profit": 0,
                 "total_cost": 0
             }
         }
@@ -479,16 +483,16 @@ class PaintCalculator:
                 finish_coats = 2
                 primer_coats = 1
 
-            # Calculate primer
-            primer = self.calculate_paint(surface, num_coats=primer_coats)
+            # Calculate primer - using lower coverage rate
+            primer = self.calculate_paint(surface, num_coats=primer_coats, is_primer=True)
             primer_labor = self.calculate_labor(surface, num_coats=primer_coats)
 
             # Calculate finish paint
-            finish = self.calculate_paint(surface, num_coats=finish_coats)
+            finish = self.calculate_paint(surface, num_coats=finish_coats, is_primer=False)
             finish_labor = self.calculate_labor(surface, num_coats=finish_coats)
 
-            # Material costs
-            primer_cost = primer["gallons_to_buy"] * (paint_price * 0.75)  # Primer cheaper
+            # Material costs - using actual 2026 pricing
+            primer_cost = primer["gallons_to_buy"] * primer_price
             finish_cost = finish["gallons_to_buy"] * paint_price
 
             # Labor costs
@@ -500,7 +504,13 @@ class PaintCalculator:
                 "finish": finish,
                 "labor": {
                     "hours": labor_hours,
-                    "cost": labor_cost
+                    "cost": labor_cost,
+                    "breakdown": {
+                        "base_hours": primer_labor["base_hours"] + finish_labor["base_hours"],
+                        "prep_hours": primer_labor["prep_hours"] + finish_labor["prep_hours"],
+                        "masking_hours": primer_labor["masking_hours"] + finish_labor["masking_hours"],
+                        "touch_up_hours": primer_labor["touch_up_hours"] + finish_labor["touch_up_hours"]
+                    }
                 },
                 "costs": {
                     "primer": primer_cost,
@@ -513,25 +523,41 @@ class PaintCalculator:
             estimate["surfaces"][surface_name] = surface_estimate
 
             # Add to totals
-            estimate["totals"]["paint_gallons"] += (
-                primer["gallons_to_buy"] + finish["gallons_to_buy"]
-            )
+            estimate["totals"]["primer_gallons"] += primer["gallons_to_buy"]
+            estimate["totals"]["paint_gallons"] += finish["gallons_to_buy"]
             estimate["totals"]["labor_hours"] += labor_hours
             estimate["totals"]["material_cost"] += primer_cost + finish_cost
             estimate["totals"]["labor_cost"] += labor_cost
 
-        # Add sundries (5% of material cost or $0.095/sqft)
+        # Add sundries (5% of material cost or $0.095/sqft per industry standard)
         sundries = max(
             estimate["totals"]["material_cost"] * 0.05,
             room.total_area * 0.095
         )
         estimate["totals"]["material_cost"] += sundries
+        estimate["totals"]["sundries"] = sundries
 
-        # Calculate total
-        estimate["totals"]["total_cost"] = (
+        # Calculate subtotal (labor + materials)
+        estimate["totals"]["subtotal"] = (
             estimate["totals"]["material_cost"] +
             estimate["totals"]["labor_cost"]
         )
+
+        # Add overhead and profit (industry standard)
+        estimate["totals"]["overhead"] = estimate["totals"]["subtotal"] * overhead_percent
+        estimate["totals"]["profit"] = estimate["totals"]["subtotal"] * profit_percent
+
+        # Calculate final total
+        estimate["totals"]["total_cost"] = (
+            estimate["totals"]["subtotal"] +
+            estimate["totals"]["overhead"] +
+            estimate["totals"]["profit"]
+        )
+
+        # Add pricing breakdown percentages
+        estimate["totals"]["price_per_sqft"] = estimate["totals"]["total_cost"] / room.total_area if room.total_area > 0 else 0
+        estimate["totals"]["labor_percentage"] = (estimate["totals"]["labor_cost"] / estimate["totals"]["subtotal"] * 100) if estimate["totals"]["subtotal"] > 0 else 0
+        estimate["totals"]["material_percentage"] = (estimate["totals"]["material_cost"] / estimate["totals"]["subtotal"] * 100) if estimate["totals"]["subtotal"] > 0 else 0
 
         return estimate
 
