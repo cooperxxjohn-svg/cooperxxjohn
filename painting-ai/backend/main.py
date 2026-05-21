@@ -17,11 +17,12 @@ from pathlib import Path
 
 from drywall_detector import DrywallDetector, Wall, Ceiling, Opening, Corner, DrywallDetection
 from drywall_calculator import DrywallCalculator, FinishLevel, ProjectType, RoomGeometry
+from drywall_assembly_expansion import DrywallAssemblyExpander
 from painting_detector import PaintingDetector, PaintCalculator, Room, Surface  # Keep for legacy support
 from database import Database
 from database_service import DatabaseService
 from export_generator import ExportGenerator
-from assembly_expansion import AssemblyExpander
+from assembly_expansion import AssemblyExpander  # Legacy painting assembly expander
 from auth_jwt import AuthManager, UserRegister, UserLogin, Token, get_auth_manager
 from payments import PaymentService, PLANS, get_payment_service
 from email_service import get_email_service
@@ -59,6 +60,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 # Initialize services
 drywall_detector = DrywallDetector(config.ai.anthropic_api_key)
 drywall_calculator = DrywallCalculator()
+drywall_assembly_expander = DrywallAssemblyExpander()
 
 # Legacy support (keep for backwards compatibility)
 detector = PaintingDetector(config.ai.anthropic_api_key)
@@ -1409,8 +1411,12 @@ async def generate_drywall_estimate(
     params: DrywallEstimateParams
 ):
     """
-    Generate detailed drywall estimate with materials and labor
-    Uses DrywallCalculator for industry-standard calculations
+    Generate detailed drywall estimate with 80-144 line items
+
+    THIS IS THE MOAT: Competitors give you summaries, we give you bidding-ready line items
+
+    ChatGPT: "You have 12 walls, about 1,850 sqft, needs 60 sheets"
+    Us: "Here are 127 detailed line items with exact quantities, pricing, and labor breakdown"
     """
     project = db.get_project(project_id)
     if not project:
@@ -1420,56 +1426,18 @@ async def generate_drywall_estimate(
     if not walls:
         raise HTTPException(status_code=400, detail="No walls detected. Upload a drawing first.")
 
-    # Calculate total wall area
-    total_wall_sqft = sum(w["square_footage"] for w in walls)
-    total_opening_sqft = sum(
-        sum(o["square_footage"] * o.get("quantity", 1) for o in w.get("openings", []))
-        for w in walls
-    )
-    net_wall_sqft = total_wall_sqft - total_opening_sqft
-
-    # Calculate ceiling area
     ceilings = project.get("ceilings", [])
-    total_ceiling_sqft = sum(c["square_footage"] for c in ceilings)
 
-    # Use DrywallCalculator for accurate estimates
-    # Create a simplified room geometry from wall data
-    total_sqft = net_wall_sqft + total_ceiling_sqft
+    print(f"[Estimate] Expanding {len(walls)} walls into detailed assembly...")
 
-    # Simple estimate for now (full integration would parse all wall data)
-    from drywall_calculator import FinishLevel, ProjectType
-
-    finish_level = FinishLevel(params.finish_level)
-    project_type = ProjectType(params.project_type)
-
-    # Basic material calculations
-    sheets_needed = math.ceil(total_sqft / 32)  # 32 sqft per 4x8 sheet
-    waste_factor = 1.15  # 15% waste
-    total_sheets = math.ceil(sheets_needed * waste_factor)
-
-    # Joint compound (lbs per sqft varies by finish level)
-    compound_rates = {0: 0, 1: 0.028, 2: 0.040, 3: 0.053, 4: 0.067, 5: 0.095}
-    compound_lbs = total_sqft * compound_rates[params.finish_level]
-
-    # Tape (linear feet = perimeter estimate)
-    tape_lf = total_sqft * 0.4  # rough estimate
-
-    # Screws (per sheet)
-    screws = total_sheets * 50
-
-    # Labor hours by phase
-    hanging_hours = total_sqft / 40  # 40 sqft/hr
-    taping_hours = total_sqft / 150   # 150 sqft/hr
-    finishing_hours = total_sqft / 200 * (params.finish_level / 3)  # varies by level
-    total_labor_hours = hanging_hours + taping_hours + finishing_hours
-
-    # Costs
-    material_cost = (total_sheets * 12) + (compound_lbs * 0.40) + (tape_lf * 0.03) + (screws * 0.001)
-    labor_cost = total_labor_hours * params.labor_rate
-    subtotal = material_cost + labor_cost
-    overhead = subtotal * 0.15
-    profit = subtotal * 0.20
-    total_cost = subtotal + overhead + profit
+    # Use DrywallAssemblyExpander to generate 80-144 line items
+    # This is the competitive moat - detailed breakdown that requires domain expertise
+    assembly_result = drywall_assembly_expander.expand_project(
+        walls=walls,
+        ceilings=ceilings,
+        finish_level=params.finish_level,
+        project_type=params.project_type
+    )
 
     estimate_data = {
         "project_id": project_id,
@@ -1481,42 +1449,20 @@ async def generate_drywall_estimate(
             "project_type": params.project_type,
             "region": params.region
         },
-        "measurements": {
-            "total_walls": len(walls),
-            "total_ceilings": len(ceilings),
-            "gross_wall_sqft": total_wall_sqft,
-            "opening_sqft": total_opening_sqft,
-            "net_wall_sqft": net_wall_sqft,
-            "ceiling_sqft": total_ceiling_sqft,
-            "total_sqft": total_sqft
-        },
-        "materials": {
-            "drywall_sheets": total_sheets,
-            "joint_compound_lbs": round(compound_lbs, 1),
-            "tape_linear_feet": round(tape_lf, 0),
-            "screws": screws
-        },
-        "labor": {
-            "hanging_hours": round(hanging_hours, 2),
-            "taping_hours": round(taping_hours, 2),
-            "finishing_hours": round(finishing_hours, 2),
-            "total_hours": round(total_labor_hours, 2)
-        },
-        "costs": {
-            "material_cost": round(material_cost, 2),
-            "labor_cost": round(labor_cost, 2),
-            "subtotal": round(subtotal, 2),
-            "overhead": round(overhead, 2),
-            "profit": round(profit, 2),
-            "total_cost": round(total_cost, 2),
-            "cost_per_sqft": round(total_cost / total_sqft, 2)
-        }
+        "summary": assembly_result["summary"],
+        "costs": assembly_result["costs"],
+        "line_items": assembly_result["line_items"],
+        "line_item_count": assembly_result["line_item_count"],
+        "moat_metrics": assembly_result["moat_metrics"]
     }
 
-    # Save estimate to project
+    # Save estimate to project (with all line items)
     project_data = db.get_project(project_id)
     project_data["estimate"] = estimate_data
+    project_data["assembly_expanded"] = True  # Flag for tracking moat usage
     db.update_project(project_id, project_data)
+
+    print(f"[Estimate] Generated {assembly_result['line_item_count']} line items, ${assembly_result['costs']['total_cost']:,.2f} total")
 
     return estimate_data
 
