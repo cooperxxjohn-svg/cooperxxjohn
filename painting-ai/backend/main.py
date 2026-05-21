@@ -243,7 +243,76 @@ async def database_health_check():
         latency_ms = round((time.time() - start_time) * 1000, 2)
         return {
             "status": "unhealthy",
-            "response_time_ms": round(response_time * 1000, 2),
+            "latency_ms": latency_ms,
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+
+@app.get("/health/redis")
+async def redis_health_check():
+    """
+    Redis cache health check
+    """
+    start_time = time.time()
+
+    try:
+        if not redis_client:
+            return {
+                "status": "not_configured",
+                "message": "Redis not configured",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+        # Test connection
+        redis_client.ping()
+
+        latency_ms = round((time.time() - start_time) * 1000, 2)
+
+        return {
+            "status": "healthy",
+            "latency_ms": latency_ms,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        latency_ms = round((time.time() - start_time) * 1000, 2)
+        return {
+            "status": "unhealthy",
+            "latency_ms": latency_ms,
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+
+@app.get("/health/storage")
+async def storage_health_check():
+    """
+    File storage (S3) health check
+    """
+    try:
+        if not s3_service:
+            return {
+                "status": "not_configured",
+                "storage_type": "local",
+                "message": "Using local filesystem storage",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+        return {
+            "status": "configured",
+            "storage_type": "s3",
+            "region": s3_service.aws_region,
+            "buckets": {
+                "uploads": s3_service.bucket_uploads,
+                "exports": s3_service.bucket_exports
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat()
         }
