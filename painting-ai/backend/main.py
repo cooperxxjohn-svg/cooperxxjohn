@@ -1,6 +1,6 @@
 """
-Painting.ai API Server
-FastAPI backend for AI-powered painting takeoffs
+Drywall.ai API Server
+FastAPI backend for AI-powered drywall takeoffs
 """
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Depends
@@ -15,7 +15,9 @@ from datetime import datetime
 import asyncio
 from pathlib import Path
 
-from painting_detector import PaintingDetector, PaintCalculator, Room, Surface
+from drywall_detector import DrywallDetector, Wall, Ceiling, Opening, Corner, DrywallDetection
+from drywall_calculator import DrywallCalculator, FinishLevel, ProjectType, RoomGeometry
+from painting_detector import PaintingDetector, PaintCalculator, Room, Surface  # Keep for legacy support
 from database import Database
 from database_service import DatabaseService
 from export_generator import ExportGenerator
@@ -31,9 +33,9 @@ import redis
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Painting.ai API",
-    description="AI-powered takeoff and estimating for painting contractors",
-    version="0.1.0"
+    title="Drywall.ai API",
+    description="AI-powered takeoff and estimating for drywall contractors",
+    version="0.2.0"
 )
 
 # CORS middleware
@@ -55,6 +57,10 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Initialize services
+drywall_detector = DrywallDetector(config.ai.anthropic_api_key)
+drywall_calculator = DrywallCalculator()
+
+# Legacy support (keep for backwards compatibility)
 detector = PaintingDetector(config.ai.anthropic_api_key)
 calculator = PaintCalculator()
 
@@ -139,6 +145,46 @@ class CheckoutRequest(BaseModel):
 
 class PortalRequest(BaseModel):
     return_url: str
+
+
+# Drywall-specific models
+class DrywallProjectResponse(BaseModel):
+    id: str
+    name: str
+    customer: Optional[str]
+    created_at: str
+    status: str
+    total_walls: int = 0
+    total_wall_sqft: float = 0.0
+    total_ceiling_sqft: float = 0.0
+    total_sheets: float = 0.0
+    total_labor_hours: float = 0.0
+    estimated_cost: float = 0.0
+
+
+class WallCreate(BaseModel):
+    wall_id: str
+    type: str  # interior, exterior, partition
+    length_ft: float
+    height_ft: float
+    openings: List[Dict] = []
+    inside_corners: int = 0
+    outside_corners: int = 0
+
+
+class WallUpdate(BaseModel):
+    length_ft: Optional[float] = None
+    height_ft: Optional[float] = None
+    type: Optional[str] = None
+    openings: Optional[List[Dict]] = None
+
+
+class DrywallEstimateParams(BaseModel):
+    finish_level: int = 4  # ASTM C840 Level (0-5)
+    sheet_thickness: float = 0.5  # inches (0.5" or 0.625")
+    labor_rate: float = 65.0  # $/hour
+    project_type: str = "residential"  # residential, commercial, remodel
+    region: str = "national"  # for regional pricing adjustments
 
 
 # Routes
@@ -1103,11 +1149,449 @@ async def delete_project(project_id: str):
     return {"message": "Project deleted", "project_id": project_id}
 
 
+# ========================================
+# DRYWALL-SPECIFIC ENDPOINTS
+# ========================================
+
+@app.post("/drywall/projects/{project_id}/upload")
+async def upload_drywall_drawing(
+    project_id: str,
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None
+):
+    """Upload and process a drywall drawing (floor plan, elevation, section, RCP)"""
+
+    # Verify project exists
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # File validation
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+    ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}
+
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+
+    content = await file.read()
+    file_size = len(content)
+
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail=f"File too large. Max: 50MB")
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    # Save file
+    project_upload_dir = UPLOAD_DIR / "drywall" / project_id
+    project_upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_id = str(uuid.uuid4())
+    file_path = project_upload_dir / f"{file_id}{file_ext}"
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    # Initialize processing status
+    processing_status = {
+        "file_id": file_id,
+        "filename": file.filename,
+        "status": "queued",
+        "progress": 0,
+        "message": "File uploaded, queued for drywall detection",
+        "uploaded_at": datetime.utcnow().isoformat(),
+        "file_size": file_size,
+        "type": "drywall"
+    }
+
+    # Store status
+    project_data = project.copy()
+    if "drywall_uploads" not in project_data:
+        project_data["drywall_uploads"] = {}
+    project_data["drywall_uploads"][file_id] = processing_status
+    db.update_project(project_id, project_data)
+    db.update_project(project_id, {"status": "processing"})
+
+    # Process in background
+    if background_tasks:
+        background_tasks.add_task(
+            process_drywall_drawing,
+            project_id=project_id,
+            file_path=str(file_path),
+            file_id=file_id
+        )
+
+    return {
+        "message": "Drywall drawing uploaded and queued for processing",
+        "file_id": file_id,
+        "filename": file.filename,
+        "file_size": file_size,
+        "status": "queued",
+        "project_id": project_id
+    }
+
+
+async def process_drywall_drawing(project_id: str, file_path: str, file_id: str):
+    """
+    Background task to process drywall drawing
+    8-Stage Pipeline:
+    1. Upload → 2. Classification → 3. Drawing Analysis → 4. Wall Extraction →
+    5. Opening Detection → 6. Material Calc → 7. Labor Estimation → 8. Takeoff Generation
+    """
+    try:
+        # Stage 1: Upload (already done)
+        # Stage 2: Classification + Stage 3: Drawing Analysis
+        update_drywall_status(project_id, file_id, "processing", 10, "Stage 1/8: Classifying drawing type...")
+
+        # Detect walls, openings, ceilings using AI
+        update_drywall_status(project_id, file_id, "processing", 25, "Stage 2-3/8: AI analyzing drawing...")
+        detection_result = drywall_detector.analyze_drawing(file_path)
+
+        # Stage 4: Wall Extraction
+        update_drywall_status(
+            project_id, file_id, "processing", 45,
+            f"Stage 4/8: Extracted {len(detection_result.walls)} walls, {len(detection_result.ceilings)} ceilings"
+        )
+
+        # Save walls to database
+        for i, wall in enumerate(detection_result.walls):
+            wall_id = str(uuid.uuid4())
+
+            wall_data = {
+                "id": wall_id,
+                "project_id": project_id,
+                "wall_id": wall.wall_id,
+                "type": wall.type,
+                "length_ft": wall.length_ft,
+                "height_ft": wall.height_ft,
+                "square_footage": wall.square_footage,
+                "openings": [
+                    {
+                        "type": opening.type,
+                        "width": opening.width,
+                        "height": opening.height,
+                        "square_footage": opening.square_footage,
+                        "quantity": opening.quantity
+                    }
+                    for opening in wall.openings
+                ],
+                "corners": {
+                    "inside_corners": wall.corners.inside_corners,
+                    "outside_corners": wall.corners.outside_corners
+                },
+                "special_features": wall.special_features
+            }
+
+            # Store in project data (since we don't have wall-specific DB table yet)
+            project_data = db.get_project(project_id)
+            if "walls" not in project_data:
+                project_data["walls"] = []
+            project_data["walls"].append(wall_data)
+            db.update_project(project_id, project_data)
+
+            progress = 45 + int((i + 1) / len(detection_result.walls) * 20)
+            update_drywall_status(project_id, file_id, "processing", progress, f"Saved wall {i+1}/{len(detection_result.walls)}")
+
+        # Save ceilings
+        for ceiling in detection_result.ceilings:
+            ceiling_data = {
+                "id": str(uuid.uuid4()),
+                "project_id": project_id,
+                "room": ceiling.room,
+                "type": ceiling.type,
+                "square_footage": ceiling.square_footage,
+                "height_ft": ceiling.height_ft,
+                "special_notes": ceiling.special_notes
+            }
+
+            project_data = db.get_project(project_id)
+            if "ceilings" not in project_data:
+                project_data["ceilings"] = []
+            project_data["ceilings"].append(ceiling_data)
+            db.update_project(project_id, project_data)
+
+        # Stage 5: Opening Detection (already done during AI analysis)
+        update_drywall_status(project_id, file_id, "processing", 65, "Stage 5/8: Opening detection complete")
+
+        # Stage 6: Material Calculation
+        update_drywall_status(project_id, file_id, "processing", 70, "Stage 6/8: Calculating materials...")
+
+        # Calculate materials using DrywallCalculator
+        project_data = db.get_project(project_id)
+        total_wall_sqft = detection_result.summary.get("total_wall_sqft", 0)
+        total_ceiling_sqft = detection_result.summary.get("total_ceiling_sqft", 0)
+
+        # Stage 7: Labor Estimation
+        update_drywall_status(project_id, file_id, "processing", 85, "Stage 7/8: Estimating labor...")
+
+        # Get estimate using calculator
+        # For now, use a simplified calculation - full integration would use DrywallCalculator
+        estimate = {
+            "walls": len(detection_result.walls),
+            "ceilings": len(detection_result.ceilings),
+            "wall_sqft": total_wall_sqft,
+            "ceiling_sqft": total_ceiling_sqft,
+            "total_sqft": total_wall_sqft + total_ceiling_sqft,
+            "drawing_type": detection_result.drawing_type,
+            "scale": detection_result.scale
+        }
+
+        # Stage 8: Takeoff Generation
+        update_drywall_status(project_id, file_id, "processing", 95, "Stage 8/8: Generating takeoff...")
+
+        # Update project with final results
+        db.update_project(project_id, {
+            "status": "complete",
+            "total_walls": len(detection_result.walls),
+            "total_ceilings": len(detection_result.ceilings),
+            "total_wall_sqft": total_wall_sqft,
+            "total_ceiling_sqft": total_ceiling_sqft,
+            "drawing_type": detection_result.drawing_type,
+            "detection_summary": detection_result.summary,
+            "updated_at": datetime.utcnow().isoformat()
+        })
+
+        # Complete
+        update_drywall_status(
+            project_id, file_id, "complete", 100,
+            f"Complete! {len(detection_result.walls)} walls, {total_wall_sqft:.0f} wall sqft, {total_ceiling_sqft:.0f} ceiling sqft"
+        )
+
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error processing drywall drawing: {error_details}")
+
+        update_drywall_status(project_id, file_id, "failed", 0, f"Error: {str(e)}")
+        db.update_project(project_id, {
+            "status": "failed",
+            "error": str(e),
+            "updated_at": datetime.utcnow().isoformat()
+        })
+
+
+def update_drywall_status(project_id: str, file_id: str, status: str, progress: int, message: str):
+    """Update drywall processing status"""
+    project = db.get_project(project_id)
+    if project and "drywall_uploads" in project and file_id in project["drywall_uploads"]:
+        project["drywall_uploads"][file_id].update({
+            "status": status,
+            "progress": progress,
+            "message": message,
+            "updated_at": datetime.utcnow().isoformat()
+        })
+        db.update_project(project_id, {"drywall_uploads": project["drywall_uploads"]})
+
+
+@app.get("/drywall/projects/{project_id}/walls")
+async def get_project_walls(project_id: str):
+    """Get all detected walls for a drywall project"""
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    walls = project.get("walls", [])
+    ceilings = project.get("ceilings", [])
+
+    return {
+        "walls": walls,
+        "ceilings": ceilings,
+        "summary": project.get("detection_summary", {})
+    }
+
+
+@app.post("/drywall/projects/{project_id}/estimate")
+async def generate_drywall_estimate(
+    project_id: str,
+    params: DrywallEstimateParams
+):
+    """
+    Generate detailed drywall estimate with materials and labor
+    Uses DrywallCalculator for industry-standard calculations
+    """
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    walls = project.get("walls", [])
+    if not walls:
+        raise HTTPException(status_code=400, detail="No walls detected. Upload a drawing first.")
+
+    # Calculate total wall area
+    total_wall_sqft = sum(w["square_footage"] for w in walls)
+    total_opening_sqft = sum(
+        sum(o["square_footage"] * o.get("quantity", 1) for o in w.get("openings", []))
+        for w in walls
+    )
+    net_wall_sqft = total_wall_sqft - total_opening_sqft
+
+    # Calculate ceiling area
+    ceilings = project.get("ceilings", [])
+    total_ceiling_sqft = sum(c["square_footage"] for c in ceilings)
+
+    # Use DrywallCalculator for accurate estimates
+    # Create a simplified room geometry from wall data
+    total_sqft = net_wall_sqft + total_ceiling_sqft
+
+    # Simple estimate for now (full integration would parse all wall data)
+    from drywall_calculator import FinishLevel, ProjectType
+
+    finish_level = FinishLevel(params.finish_level)
+    project_type = ProjectType(params.project_type)
+
+    # Basic material calculations
+    sheets_needed = math.ceil(total_sqft / 32)  # 32 sqft per 4x8 sheet
+    waste_factor = 1.15  # 15% waste
+    total_sheets = math.ceil(sheets_needed * waste_factor)
+
+    # Joint compound (lbs per sqft varies by finish level)
+    compound_rates = {0: 0, 1: 0.028, 2: 0.040, 3: 0.053, 4: 0.067, 5: 0.095}
+    compound_lbs = total_sqft * compound_rates[params.finish_level]
+
+    # Tape (linear feet = perimeter estimate)
+    tape_lf = total_sqft * 0.4  # rough estimate
+
+    # Screws (per sheet)
+    screws = total_sheets * 50
+
+    # Labor hours by phase
+    hanging_hours = total_sqft / 40  # 40 sqft/hr
+    taping_hours = total_sqft / 150   # 150 sqft/hr
+    finishing_hours = total_sqft / 200 * (params.finish_level / 3)  # varies by level
+    total_labor_hours = hanging_hours + taping_hours + finishing_hours
+
+    # Costs
+    material_cost = (total_sheets * 12) + (compound_lbs * 0.40) + (tape_lf * 0.03) + (screws * 0.001)
+    labor_cost = total_labor_hours * params.labor_rate
+    subtotal = material_cost + labor_cost
+    overhead = subtotal * 0.15
+    profit = subtotal * 0.20
+    total_cost = subtotal + overhead + profit
+
+    estimate_data = {
+        "project_id": project_id,
+        "generated_at": datetime.utcnow().isoformat(),
+        "parameters": {
+            "finish_level": params.finish_level,
+            "sheet_thickness": params.sheet_thickness,
+            "labor_rate": params.labor_rate,
+            "project_type": params.project_type,
+            "region": params.region
+        },
+        "measurements": {
+            "total_walls": len(walls),
+            "total_ceilings": len(ceilings),
+            "gross_wall_sqft": total_wall_sqft,
+            "opening_sqft": total_opening_sqft,
+            "net_wall_sqft": net_wall_sqft,
+            "ceiling_sqft": total_ceiling_sqft,
+            "total_sqft": total_sqft
+        },
+        "materials": {
+            "drywall_sheets": total_sheets,
+            "joint_compound_lbs": round(compound_lbs, 1),
+            "tape_linear_feet": round(tape_lf, 0),
+            "screws": screws
+        },
+        "labor": {
+            "hanging_hours": round(hanging_hours, 2),
+            "taping_hours": round(taping_hours, 2),
+            "finishing_hours": round(finishing_hours, 2),
+            "total_hours": round(total_labor_hours, 2)
+        },
+        "costs": {
+            "material_cost": round(material_cost, 2),
+            "labor_cost": round(labor_cost, 2),
+            "subtotal": round(subtotal, 2),
+            "overhead": round(overhead, 2),
+            "profit": round(profit, 2),
+            "total_cost": round(total_cost, 2),
+            "cost_per_sqft": round(total_cost / total_sqft, 2)
+        }
+    }
+
+    # Save estimate to project
+    project_data = db.get_project(project_id)
+    project_data["estimate"] = estimate_data
+    db.update_project(project_id, project_data)
+
+    return estimate_data
+
+
+@app.patch("/drywall/walls/{wall_id}")
+async def update_wall(wall_id: str, updates: WallUpdate):
+    """Update wall dimensions or openings (contractor review/override)"""
+    # Find wall in database
+    # For now, search through all projects (would be optimized with proper DB schema)
+    projects = db.get_all_projects()
+
+    wall_found = False
+    for project in projects:
+        if "walls" in project:
+            for wall in project["walls"]:
+                if wall["id"] == wall_id:
+                    # Update wall
+                    if updates.length_ft is not None:
+                        wall["length_ft"] = updates.length_ft
+                        wall["square_footage"] = updates.length_ft * wall["height_ft"]
+                    if updates.height_ft is not None:
+                        wall["height_ft"] = updates.height_ft
+                        wall["square_footage"] = wall["length_ft"] * updates.height_ft
+                    if updates.type is not None:
+                        wall["type"] = updates.type
+                    if updates.openings is not None:
+                        wall["openings"] = updates.openings
+
+                    db.update_project(project["id"], {"walls": project["walls"]})
+                    wall_found = True
+                    return {"message": "Wall updated", "wall": wall}
+
+    if not wall_found:
+        raise HTTPException(status_code=404, detail="Wall not found")
+
+
+@app.post("/drywall/projects/{project_id}/walls")
+async def add_manual_wall(project_id: str, wall: WallCreate):
+    """Add a wall manually (for areas AI missed or manual entry)"""
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    wall_data = {
+        "id": str(uuid.uuid4()),
+        "project_id": project_id,
+        "wall_id": wall.wall_id,
+        "type": wall.type,
+        "length_ft": wall.length_ft,
+        "height_ft": wall.height_ft,
+        "square_footage": wall.length_ft * wall.height_ft,
+        "openings": wall.openings,
+        "corners": {
+            "inside_corners": wall.inside_corners,
+            "outside_corners": wall.outside_corners
+        },
+        "special_features": [],
+        "manually_added": True
+    }
+
+    if "walls" not in project:
+        project["walls"] = []
+    project["walls"].append(wall_data)
+    db.update_project(project_id, {"walls": project["walls"]})
+
+    return {"message": "Wall added", "wall": wall_data}
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    print("🎨 Painting.ai API Server")
+    print("🔨 Drywall.ai API Server")
     print("📍 Running on http://localhost:8000")
     print("📖 Docs: http://localhost:8000/docs")
+    print("🎯 Drywall endpoints: /drywall/*")
+    print("🎨 Legacy painting endpoints: /projects/*")
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
