@@ -37,7 +37,6 @@ export default function NewProject() {
           navigate(`/projects/${projectData.id}`)
         }, 2000)
       } catch (error) {
-        console.error('Upload failed:', error)
         alert('Failed to upload drawing. Please try again.')
       } finally {
         setUploading(false)

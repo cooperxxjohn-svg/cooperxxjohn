@@ -26,7 +26,7 @@ export default function Success() {
         setSubscriptionDetails(response.data);
         setLoading(false);
       } catch (error) {
-        console.error('Failed to verify session:', error);
+        // Session verification failed, continue with limited details
         setLoading(false);
       }
     };

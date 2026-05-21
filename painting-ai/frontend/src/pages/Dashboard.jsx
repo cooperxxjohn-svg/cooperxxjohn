@@ -35,7 +35,7 @@ export default function Dashboard() {
         <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-gray-900 mb-2">No projects yet</h2>
         <p className="text-gray-600 mb-6">Get started by creating your first project</p>
-        <Link to="/new" className="btn btn-primary inline-flex items-center">
+        <Link to="/dashboard/upload" className="btn btn-primary inline-flex items-center">
           Create Project
         </Link>
       </div>
@@ -100,7 +100,7 @@ export default function Dashboard() {
           {projects.map((project) => (
             <Link
               key={project.id}
-              to={`/projects/${project.id}`}
+              to={`/dashboard/projects/${project.id}`}
               className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center justify-between">

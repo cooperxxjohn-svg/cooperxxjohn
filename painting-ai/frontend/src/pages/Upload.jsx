@@ -24,7 +24,7 @@ export default function Upload() {
     onSuccess: (data, variables) => {
       setUploadProgress({ status: 'complete', message: 'Processing complete!' })
       setTimeout(() => {
-        navigate(`/projects/${variables.projectId}`)
+        navigate(`/dashboard/projects/${variables.projectId}`)
       }, 1500)
     },
   })
@@ -102,7 +102,7 @@ export default function Upload() {
       })
     } catch (error) {
       setUploadProgress(null)
-      console.error('Upload failed:', error)
+      // Error is already handled by React Query error state
     }
   }
 
@@ -274,7 +274,7 @@ export default function Upload() {
         <div className="flex justify-end space-x-3">
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="btn btn-secondary"
             disabled={isSubmitting}
           >

@@ -25,10 +25,7 @@ class ErrorBoundary extends Component {
     // Log to error tracking service (e.g., Sentry)
     if (window.location.hostname !== 'localhost') {
       // TODO: Send to error tracking service
-      console.log('Would send to error tracking:', {
-        error: error.toString(),
-        componentStack: errorInfo.componentStack,
-      });
+      // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
     }
   }
 
