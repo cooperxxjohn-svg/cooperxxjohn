@@ -399,12 +399,15 @@ class PaintCalculator:
     def __init__(self, surface_type: str = "smooth_drywall"):
         self.surface_type = surface_type
         self.coverage_rate = self.COVERAGE_RATES.get(surface_type, 400)
+        self.primer_coverage_rate = self.PRIMER_COVERAGE_RATES.get("default", 250)
 
     def calculate_paint(self, surface: Surface, num_coats: int = 2,
-                       waste_factor: float = 1.10) -> Dict:
-        """Calculate paint needed for a surface"""
+                       waste_factor: float = 1.10, is_primer: bool = False) -> Dict:
+        """Calculate paint needed for a surface - Updated with realistic coverage rates"""
+        coverage_rate = self.primer_coverage_rate if is_primer else self.coverage_rate
+
         total_area = surface.area * num_coats
-        gallons_needed = (total_area / self.coverage_rate) * waste_factor
+        gallons_needed = (total_area / coverage_rate) * waste_factor
         gallons_rounded = max(1, round(gallons_needed))
 
         return {
@@ -412,29 +415,44 @@ class PaintCalculator:
             "num_coats": num_coats,
             "gallons_calculated": gallons_needed,
             "gallons_to_buy": gallons_rounded,
-            "coverage_rate": self.coverage_rate
+            "coverage_rate": coverage_rate,
+            "is_primer": is_primer
         }
 
-    def calculate_labor(self, surface: Surface, num_coats: int = 2) -> Dict:
-        """Calculate labor hours for a surface"""
-        production_rate = self.PRODUCTION_RATES.get(surface.type, 300)
+    def calculate_labor(self, surface: Surface, num_coats: int = 2, prep_level: str = "light") -> Dict:
+        """Calculate labor hours for a surface - Updated with realistic production rates"""
+        production_rate = self.PRODUCTION_RATES.get(surface.type, 200)
 
         base_hours = (surface.area / production_rate) * num_coats
-        prep_hours = base_hours * 0.15  # 15% prep time
+
+        # Prep time varies by level (per industry standards)
+        prep_multipliers = {
+            "light": 0.15,   # 15% - standard residential repaint
+            "medium": 0.30,  # 30% - older buildings, moderate damage
+            "heavy": 0.50    # 50% - extensive repairs, stripping
+        }
+        prep_multiplier = prep_multipliers.get(prep_level, 0.15)
+        prep_hours = base_hours * prep_multiplier
+
+        # Additional time factors
+        masking_hours = base_hours * 0.10  # 10% for masking and protection
         touch_up_hours = base_hours * 0.05  # 5% touch-up time
 
-        total_hours = base_hours + prep_hours + touch_up_hours
+        total_hours = base_hours + prep_hours + masking_hours + touch_up_hours
 
         return {
             "base_hours": base_hours,
             "prep_hours": prep_hours,
+            "prep_level": prep_level,
+            "masking_hours": masking_hours,
             "touch_up_hours": touch_up_hours,
             "total_hours": total_hours,
             "production_rate": production_rate
         }
 
-    def calculate_room_estimate(self, room: Room, paint_price: float = 55.0,
-                               labor_rate: float = 50.0) -> Dict:
+    def calculate_room_estimate(self, room: Room, paint_price: float = 60.0,
+                               primer_price: float = 43.0, labor_rate: float = 60.0,
+                               overhead_percent: float = 0.15, profit_percent: float = 0.25) -> Dict:
         """Calculate complete estimate for a room"""
         estimate = {
             "room_id": room.id,
