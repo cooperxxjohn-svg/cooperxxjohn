@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Loader2, AlertCircle, PaintBucket } from 'lucide-react'
+import { Loader2, AlertCircle, Hammer } from 'lucide-react'
 import { login } from '../utils/api'
 import useAuthStore from '../store/authStore'
 
@@ -37,10 +37,10 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <PaintBucket className="w-12 h-12 text-primary-600" />
+          <Hammer className="w-12 h-12 text-primary-600" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Sign in to Painting.ai
+          Sign in to Drywall.ai
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
@@ -150,7 +150,7 @@ export default function Login() {
 
             <div className="mt-4 bg-gray-50 rounded-lg p-4 text-xs text-gray-600">
               <p className="font-medium mb-1">For testing:</p>
-              <p>Email: demo@painting.ai</p>
+              <p>Email: demo@drywall.ai</p>
               <p>Password: demo123</p>
             </div>
           </div>

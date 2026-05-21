@@ -780,12 +780,22 @@ class DrywallCalculator:
         total_costs.overhead = total_costs.subtotal * self.overhead_percent
         total_costs.profit = total_costs.subtotal * self.profit_percent
 
+        # Convert labor to dict and add total property
+        labor_dict = asdict(total_labor)
+        labor_dict["total"] = total_labor.total
+
+        # Convert costs to dict and add computed properties
+        costs_dict = asdict(total_costs)
+        costs_dict["total_materials"] = total_costs.total_materials
+        costs_dict["subtotal"] = total_costs.subtotal
+        costs_dict["total"] = total_costs.total
+
         return {
             "room_estimates": [asdict(est) for est in estimates],
             "totals": {
                 "materials": asdict(total_materials),
-                "labor": asdict(total_labor),
-                "costs": asdict(total_costs),
+                "labor": labor_dict,
+                "costs": costs_dict,
                 "total_rooms": len(estimates),
                 "total_sqft": sum(
                     est.geometry.wall_sqft + est.geometry.ceiling_sqft

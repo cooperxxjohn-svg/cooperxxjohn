@@ -144,7 +144,7 @@ export default function Settings() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                   <p className="text-sm text-blue-800">
-                    Your API key allows you to access the Painting.ai API programmatically.
+                    Your API key allows you to access the Drywall.ai API programmatically.
                     Keep it secret and never commit it to version control.
                   </p>
                 </div>
@@ -176,7 +176,7 @@ export default function Settings() {
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h3 className="font-medium text-gray-900 mb-2">Usage Example</h3>
                     <pre className="text-xs bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto">
-{`curl -X POST https://api.painting.ai/api/projects \\
+{`curl -X POST https://api.drywall.ai/api/projects \\
   -H "X-API-Key: ${user?.api_key || 'your_api_key'}" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "My Project"}'`}

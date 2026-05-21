@@ -190,7 +190,7 @@ export default function Landing() {
               Everything You Need to Win More Bids
             </h2>
             <p className="text-xl text-gray-600">
-              Powerful features designed for painting contractors
+              Powerful features designed for drywall contractors
             </p>
           </div>
 
@@ -253,7 +253,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Trusted by Painting Contractors
+              Trusted by Drywall Contractors
             </h2>
             <p className="text-xl text-gray-600">
               See what our customers have to say
@@ -315,12 +315,12 @@ export default function Landing() {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <PaintBucket className="w-5 h-5 text-white" />
+                  <Hammer className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">Drywall.ai</span>
               </div>
               <p className="text-sm">
-                AI-powered takeoffs for painting contractors
+                AI-powered takeoffs for drywall contractors
               </p>
             </div>
 
@@ -338,7 +338,7 @@ export default function Landing() {
               <h4 className="text-white font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-sm">
                 <li><a href="/about" className="hover:text-white">About</a></li>
-                <li><a href="mailto:support@painting.ai" className="hover:text-white">Contact</a></li>
+                <li><a href="mailto:support@drywall.ai" className="hover:text-white">Contact</a></li>
                 <li><a href="/terms" className="hover:text-white">Terms</a></li>
                 <li><a href="/privacy" className="hover:text-white">Privacy</a></li>
               </ul>
@@ -347,8 +347,8 @@ export default function Landing() {
             <div>
               <h4 className="text-white font-semibold mb-4">Connect</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="mailto:support@painting.ai" className="hover:text-white">support@painting.ai</a></li>
-                <li><a href="mailto:sales@painting.ai" className="hover:text-white">sales@painting.ai</a></li>
+                <li><a href="mailto:support@drywall.ai" className="hover:text-white">support@drywall.ai</a></li>
+                <li><a href="mailto:sales@drywall.ai" className="hover:text-white">sales@drywall.ai</a></li>
               </ul>
             </div>
           </div>

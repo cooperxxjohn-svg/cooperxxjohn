@@ -12,17 +12,17 @@ export default function Help() {
         {
           id: 1,
           question: 'How do I upload a floor plan?',
-          answer: 'Click the "New Project" button in the top navigation, then drag and drop your PDF or image file (PNG, JPG). Files up to 50MB are supported. The AI will automatically detect rooms and calculate estimates within 60 seconds.',
+          answer: 'Click the "New Takeoff" button in the top navigation, then drag and drop your PDF or image file (PNG, JPG). Files up to 50MB are supported. The AI will automatically detect walls and calculate material quantities within 60 seconds.',
         },
         {
           id: 2,
           question: 'What file formats are supported?',
-          answer: 'We support PDF, PNG, and JPG files up to 50MB. For best results, use clear, high-resolution floor plans with visible room boundaries and labels.',
+          answer: 'We support PDF, PNG, and JPG files up to 50MB. For best results, use clear, high-resolution floor plans with visible wall boundaries and dimensions.',
         },
         {
           id: 3,
           question: 'How accurate is the AI detection?',
-          answer: 'Our AI achieves 95%+ accuracy on standard floor plans. You can always review and edit detected rooms, dimensions, and measurements before generating your final estimate.',
+          answer: 'Our AI achieves 95%+ accuracy on standard floor plans. You can always review and edit detected walls, dimensions, and measurements before generating your final takeoff.',
         },
       ],
     },
@@ -31,17 +31,17 @@ export default function Help() {
       questions: [
         {
           id: 4,
-          question: 'Can I edit AI-detected rooms?',
-          answer: 'Yes! After upload, you\'ll see a room review interface where you can edit room names, dimensions, ceiling heights, and materials. You can also add manual rooms or delete incorrect detections.',
+          question: 'Can I edit AI-detected walls?',
+          answer: 'Yes! After upload, you\'ll see a wall review interface where you can edit wall names, linear footage, heights, openings, and wall type (interior/exterior). You can also add manual walls or delete incorrect detections.',
         },
         {
           id: 5,
-          question: 'What is Assembly Expansion?',
-          answer: 'Assembly Expansion breaks down each room into 80-120 detailed line items across 5 categories: Surface Prep, Priming, Painting, Trim Work, and Materials. This gives your clients a transparent, professional estimate.',
+          question: 'What is Material Breakdown?',
+          answer: 'Our system provides a complete material list including studs, drywall sheets, joint compound, tape, corner bead, screws, and labor hours broken down by phase: Framing, Hanging, Taping, Mudding, Sanding, and Finishing.',
         },
         {
           id: 6,
-          question: 'How do I export my estimate?',
+          question: 'How do I export my takeoff?',
           answer: 'Once your project is processed, click "Export to Excel" for a detailed spreadsheet or "Export to PDF" for a professional proposal with your company branding.',
         },
       ],
@@ -52,7 +52,7 @@ export default function Help() {
         {
           id: 7,
           question: 'What plans are available?',
-          answer: 'We offer three plans: Starter ($99/mo) for solo contractors with 50 projects/month, Pro ($299/mo) for unlimited projects + API access + team features, and Enterprise (custom pricing) for large organizations with white-label needs.',
+          answer: 'We offer three plans: Starter ($99/mo) for solo contractors with 50 takeoffs/month, Pro ($299/mo) for unlimited takeoffs + API access + team features, and Enterprise (custom pricing) for large organizations with white-label needs.',
         },
         {
           id: 8,
@@ -110,7 +110,7 @@ export default function Help() {
             How can we help you?
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Find answers to common questions and learn how to use Painting.ai
+            Find answers to common questions and learn how to use Drywall.ai
           </p>
 
           {/* Search */}
@@ -139,7 +139,7 @@ export default function Help() {
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">Documentation</h3>
             <p className="text-sm text-gray-600">
-              Complete guides and tutorials for using Painting.ai
+              Complete guides and tutorials for using Drywall.ai
             </p>
           </a>
 
@@ -157,7 +157,7 @@ export default function Help() {
           </a>
 
           <a
-            href="mailto:support@painting.ai"
+            href="mailto:support@drywall.ai"
             className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow"
           >
             <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
@@ -232,11 +232,11 @@ export default function Help() {
             Still need help?
           </h3>
           <p className="text-gray-600 mb-6">
-            Our support team is here to help you get the most out of Painting.ai
+            Our support team is here to help you get the most out of Drywall.ai
           </p>
           <div className="flex justify-center space-x-4">
             <a
-              href="mailto:support@painting.ai"
+              href="mailto:support@drywall.ai"
               className="btn btn-primary"
             >
               Email Support

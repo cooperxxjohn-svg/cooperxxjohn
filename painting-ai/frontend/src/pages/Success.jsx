@@ -53,7 +53,7 @@ export default function Success() {
           <div className="bg-gradient-to-r from-green-500 to-green-600 p-8 text-center">
             <CheckCircle className="w-16 h-16 text-white mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-white mb-2">
-              Welcome to Painting.ai!
+              Welcome to Drywall.ai!
             </h1>
             <p className="text-green-100 text-lg">
               Your subscription is now active
@@ -140,7 +140,7 @@ export default function Success() {
                     <div>
                       <h3 className="font-medium text-gray-900">Access the API</h3>
                       <p className="text-sm text-gray-600">
-                        Integrate Painting.ai into your existing workflow with our API
+                        Integrate Drywall.ai into your existing workflow with our API
                       </p>
                     </div>
                   </div>
@@ -229,7 +229,7 @@ export default function Success() {
             Need Help Getting Started?
           </h3>
           <p className="text-gray-600 text-sm mb-4">
-            Our team is here to help you get the most out of Painting.ai
+            Our team is here to help you get the most out of Drywall.ai
           </p>
           <div className="flex justify-center space-x-4">
             <a
@@ -240,7 +240,7 @@ export default function Success() {
             </a>
             <span className="text-gray-300">|</span>
             <a
-              href="mailto:support@painting.ai"
+              href="mailto:support@drywall.ai"
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               Contact Support

@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Download, Loader2, AlertCircle, RefreshCw, Zap } from 'lucide-react'
 import { getProject, getProjectRooms, generateEstimate } from '../utils/api'
 import { useState } from 'react'
-import RoomEditor from '../components/RoomEditor'
+import WallEditor from '../components/WallEditor'
+import MaterialsList from '../components/MaterialsList'
 import api from '../utils/api'
 
 export default function ProjectView() {
@@ -126,14 +127,14 @@ export default function ProjectView() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="card">
-          <p className="text-sm text-gray-600">Total Rooms</p>
+          <p className="text-sm text-gray-600">Total Walls</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">
             {project.total_rooms || 0}
           </p>
         </div>
 
         <div className="card">
-          <p className="text-sm text-gray-600">Paintable Area</p>
+          <p className="text-sm text-gray-600">Total Area</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">
             {project.total_sqft?.toLocaleString() || 0}
             <span className="text-sm text-gray-500 ml-1">sqft</span>
@@ -141,10 +142,10 @@ export default function ProjectView() {
         </div>
 
         <div className="card">
-          <p className="text-sm text-gray-600">Paint Needed</p>
+          <p className="text-sm text-gray-600">Drywall Sheets</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">
             {project.total_gallons?.toFixed(0) || 0}
-            <span className="text-sm text-gray-500 ml-1">gal</span>
+            <span className="text-sm text-gray-500 ml-1">sheets</span>
           </p>
         </div>
 
@@ -159,13 +160,13 @@ export default function ProjectView() {
       {/* Estimate Parameters */}
       <div className="card mb-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Estimate Parameters
+          Takeoff Parameters
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Paint Price ($/gallon)
+              Drywall Price ($/sheet)
             </label>
             <input
               type="number"
@@ -199,7 +200,7 @@ export default function ProjectView() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Surface Type
+              Finishing Level
             </label>
             <select
               className="input"
@@ -211,11 +212,11 @@ export default function ProjectView() {
                 })
               }
             >
-              <option value="smooth_drywall">Smooth Drywall</option>
-              <option value="textured_drywall">Textured Drywall</option>
-              <option value="smooth_plaster">Smooth Plaster</option>
-              <option value="rough_plaster">Rough Plaster</option>
-              <option value="wood">Wood</option>
+              <option value="smooth_drywall">Level 4 - Standard</option>
+              <option value="textured_drywall">Level 3 - Textured</option>
+              <option value="smooth_plaster">Level 5 - Premium</option>
+              <option value="rough_plaster">Level 2 - Garage</option>
+              <option value="wood">Level 1 - Fire Tape</option>
             </select>
           </div>
         </div>
@@ -234,7 +235,7 @@ export default function ProjectView() {
             ) : (
               <>
                 <RefreshCw className="w-4 h-4" />
-                <span>Generate Simple Estimate</span>
+                <span>Generate Quick Estimate</span>
               </>
             )}
           </button>
@@ -252,17 +253,24 @@ export default function ProjectView() {
             ) : (
               <>
                 <Zap className="w-4 h-4" />
-                <span>Expand to Detailed Assembly</span>
+                <span>Generate Detailed Material List</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Rooms List with Editor */}
-      <div className="card">
-        <RoomEditor projectId={projectId} rooms={rooms} />
+      {/* Walls List with Editor */}
+      <div className="card mb-8">
+        <WallEditor projectId={projectId} rooms={rooms} />
       </div>
+
+      {/* Materials List */}
+      <MaterialsList
+        materials={project.materials}
+        laborHours={project.labor_hours}
+        totalCost={project.estimated_cost}
+      />
     </div>
   )
 }

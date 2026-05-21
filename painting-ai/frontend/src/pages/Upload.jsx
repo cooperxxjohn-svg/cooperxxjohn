@@ -111,9 +111,9 @@ export default function Upload() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Upload Floor Plan</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Upload Floor Plan for Drywall Takeoff</h1>
         <p className="text-gray-600 mt-2">
-          Upload a PDF or image of your floor plan to get started
+          We'll detect walls, calculate materials needed (studs, sheets, mud, tape)
         </p>
       </div>
 

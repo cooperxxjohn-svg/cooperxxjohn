@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { PaintBucket, Home, Plus, User, LogOut } from 'lucide-react'
+import { Hammer, Home, Plus, User, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import useAuthStore from '../store/authStore'
 
@@ -24,9 +24,9 @@ export default function Layout() {
             {/* Logo */}
             <Link to="/dashboard" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <PaintBucket className="w-5 h-5 text-white" />
+                <Hammer className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">Painting.ai</span>
+              <span className="text-xl font-bold text-gray-900">Drywall.ai</span>
             </Link>
 
             {/* Navigation */}
@@ -40,7 +40,7 @@ export default function Layout() {
                 }`}
               >
                 <Home className="w-4 h-4" />
-                <span>Projects</span>
+                <span>Takeoffs</span>
               </Link>
 
               <Link
@@ -48,7 +48,7 @@ export default function Layout() {
                 className="btn btn-primary flex items-center space-x-2"
               >
                 <Plus className="w-4 h-4" />
-                <span>New Project</span>
+                <span>New Takeoff</span>
               </Link>
 
               {/* User Menu */}
@@ -120,7 +120,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-gray-500 mb-4 md:mb-0">
-              &copy; 2026 Painting.ai - AI-Powered Takeoffs for Painting Contractors
+              &copy; 2026 Drywall.ai - AI-Powered Takeoffs for Drywall Contractors
             </p>
             <div className="flex space-x-6">
               <Link to="/help" className="text-sm text-gray-600 hover:text-gray-900">
@@ -133,7 +133,7 @@ export default function Layout() {
                 Privacy
               </Link>
               <a
-                href="mailto:support@painting.ai"
+                href="mailto:support@drywall.ai"
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
                 Contact

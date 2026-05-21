@@ -33,10 +33,10 @@ export default function Dashboard() {
     return (
       <div className="text-center py-12">
         <Folder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">No projects yet</h2>
-        <p className="text-gray-600 mb-6">Get started by creating your first project</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">No takeoffs yet</h2>
+        <p className="text-gray-600 mb-6">Get started by creating your first takeoff</p>
         <Link to="/dashboard/upload" className="btn btn-primary inline-flex items-center">
-          Create Project
+          Create Takeoff
         </Link>
       </div>
     )
@@ -45,8 +45,8 @@ export default function Dashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-        <p className="text-gray-600 mt-2">Manage your painting takeoff projects</p>
+        <h1 className="text-3xl font-bold text-gray-900">Takeoffs</h1>
+        <p className="text-gray-600 mt-2">Manage your drywall takeoff projects</p>
       </div>
 
       {/* Summary Cards */}
@@ -54,7 +54,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Projects</p>
+              <p className="text-sm text-gray-600">Total Takeoffs</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{projects.length}</p>
             </div>
             <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -66,7 +66,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Active Projects</p>
+              <p className="text-sm text-gray-600">Completed</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {projects.filter(p => p.status === 'complete').length}
               </p>
@@ -94,7 +94,7 @@ export default function Dashboard() {
 
       {/* Projects List */}
       <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Projects</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Takeoffs</h2>
 
         <div className="space-y-3">
           {projects.map((project) => (
@@ -110,7 +110,7 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-600 mt-1">{project.customer}</p>
                   )}
                   <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                    <span>{project.total_rooms || 0} rooms</span>
+                    <span>{project.total_rooms || 0} walls</span>
                     <span>{project.total_sqft?.toLocaleString() || 0} sqft</span>
                     {project.estimated_cost > 0 && (
                       <span className="font-medium text-gray-900">

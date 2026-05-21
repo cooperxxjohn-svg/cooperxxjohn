@@ -16,7 +16,7 @@ export default function Terms() {
                 1. Acceptance of Terms
               </h2>
               <p className="text-gray-600 mb-4">
-                By accessing and using Painting.ai ("Service"), you accept and agree to be bound by
+                By accessing and using Drywall.ai ("Service"), you accept and agree to be bound by
                 the terms and provision of this agreement. If you do not agree to these terms,
                 please do not use our Service.
               </p>
@@ -27,7 +27,7 @@ export default function Terms() {
                 2. Description of Service
               </h2>
               <p className="text-gray-600 mb-4">
-                Painting.ai is a SaaS platform that provides AI-powered painting estimation services
+                Drywall.ai is a SaaS platform that provides AI-powered painting estimation services
                 for contractors. The Service includes:
               </p>
               <ul className="list-disc pl-6 text-gray-600 mb-4 space-y-2">
@@ -133,7 +133,7 @@ export default function Terms() {
               </p>
               <p className="text-gray-600 mb-4">
                 <strong>Our Property:</strong> The Service, including all software, algorithms,
-                designs, and documentation, is owned by Painting.ai and protected by intellectual
+                designs, and documentation, is owned by Drywall.ai and protected by intellectual
                 property laws.
               </p>
             </section>
@@ -166,7 +166,7 @@ export default function Terms() {
                 10. Limitation of Liability
               </h2>
               <p className="text-gray-600 mb-4">
-                To the maximum extent permitted by law, Painting.ai shall not be liable for any
+                To the maximum extent permitted by law, Drywall.ai shall not be liable for any
                 indirect, incidental, special, consequential, or punitive damages, including loss
                 of profits, data, or business opportunities.
               </p>
@@ -188,7 +188,7 @@ export default function Terms() {
                 12. Indemnification
               </h2>
               <p className="text-gray-600 mb-4">
-                You agree to indemnify and hold harmless Painting.ai from any claims, damages, or
+                You agree to indemnify and hold harmless Drywall.ai from any claims, damages, or
                 expenses arising from your use of the Service or violation of these Terms.
               </p>
             </section>
@@ -237,8 +237,8 @@ export default function Terms() {
                 For questions about these Terms, please contact us:
               </p>
               <p className="text-gray-600">
-                Email: <a href="mailto:legal@painting.ai" className="text-primary-600 hover:text-primary-700 font-medium">legal@painting.ai</a><br />
-                Address: Painting.ai Inc., 123 Innovation Drive, San Francisco, CA 94102
+                Email: <a href="mailto:legal@drywall.ai" className="text-primary-600 hover:text-primary-700 font-medium">legal@drywall.ai</a><br />
+                Address: Drywall.ai Inc., 123 Innovation Drive, San Francisco, CA 94102
               </p>
             </section>
           </div>

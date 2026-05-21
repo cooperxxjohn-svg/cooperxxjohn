@@ -16,8 +16,8 @@ export default function Pricing() {
       price: 99,
       description: 'Perfect for solo contractors',
       features: [
-        '50 projects per month',
-        'AI room detection',
+        '50 takeoffs per month',
+        'AI wall & opening detection',
         'Excel & PDF exports',
         'Email support',
         '1 user',
@@ -30,9 +30,9 @@ export default function Pricing() {
       description: 'For growing businesses',
       popular: true,
       features: [
-        'Unlimited projects',
-        'AI room detection',
-        'Assembly expansion (80-120 line items)',
+        'Unlimited takeoffs',
+        'AI wall & opening detection',
+        'Material & labor breakdown',
         'Excel & PDF exports',
         'Public API access',
         'Priority support',
@@ -65,7 +65,7 @@ export default function Pricing() {
     }
 
     if (planId === 'enterprise') {
-      window.location.href = 'mailto:sales@painting.ai?subject=Enterprise Plan Inquiry';
+      window.location.href = 'mailto:sales@drywall.ai?subject=Enterprise Plan Inquiry';
       return;
     }
 

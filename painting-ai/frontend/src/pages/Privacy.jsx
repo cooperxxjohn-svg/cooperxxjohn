@@ -16,12 +16,12 @@ export default function Privacy() {
                 1. Introduction
               </h2>
               <p className="text-gray-600 mb-4">
-                Painting.ai ("we," "our," or "us") is committed to protecting your privacy. This
+                Drywall.ai ("we," "our," or "us") is committed to protecting your privacy. This
                 Privacy Policy explains how we collect, use, disclose, and safeguard your information
                 when you use our Service.
               </p>
               <p className="text-gray-600 mb-4">
-                By using Painting.ai, you agree to the collection and use of information in accordance
+                By using Drywall.ai, you agree to the collection and use of information in accordance
                 with this policy.
               </p>
             </section>
@@ -185,8 +185,8 @@ export default function Privacy() {
               </ul>
               <p className="text-gray-600 mb-4">
                 To exercise these rights, contact us at{' '}
-                <a href="mailto:privacy@painting.ai" className="text-primary-600 hover:text-primary-700 font-medium">
-                  privacy@painting.ai
+                <a href="mailto:privacy@drywall.ai" className="text-primary-600 hover:text-primary-700 font-medium">
+                  privacy@drywall.ai
                 </a>
               </p>
             </section>
@@ -289,9 +289,9 @@ export default function Privacy() {
                 For privacy-related questions or requests:
               </p>
               <p className="text-gray-600">
-                Email: <a href="mailto:privacy@painting.ai" className="text-primary-600 hover:text-primary-700 font-medium">privacy@painting.ai</a><br />
-                Mail: Painting.ai Inc., 123 Innovation Drive, San Francisco, CA 94102<br />
-                Data Protection Officer: <a href="mailto:dpo@painting.ai" className="text-primary-600 hover:text-primary-700 font-medium">dpo@painting.ai</a>
+                Email: <a href="mailto:privacy@drywall.ai" className="text-primary-600 hover:text-primary-700 font-medium">privacy@drywall.ai</a><br />
+                Mail: Drywall.ai Inc., 123 Innovation Drive, San Francisco, CA 94102<br />
+                Data Protection Officer: <a href="mailto:dpo@drywall.ai" className="text-primary-600 hover:text-primary-700 font-medium">dpo@drywall.ai</a>
               </p>
             </section>
           </div>
