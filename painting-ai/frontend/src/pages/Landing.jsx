@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { PaintBucket, Zap, Check, ArrowRight, Upload, FileText, Download, Users } from 'lucide-react';
+import { Hammer, Zap, Check, ArrowRight, Upload, FileText, Download, Users } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export default function Landing() {
@@ -22,13 +22,13 @@ export default function Landing() {
     },
     {
       icon: Zap,
-      title: 'AI-Powered Detection',
-      description: 'Automatically detect rooms, calculate square footage, and identify surfaces.',
+      title: 'AI Wall Detection',
+      description: 'Automatically detect walls, calculate linear footage, and identify openings.',
     },
     {
       icon: FileText,
-      title: 'Detailed Estimates',
-      description: 'Generate professional estimates with 80-120 line items per room using assembly expansion.',
+      title: 'Complete Material Lists',
+      description: 'Detailed breakdown of studs, sheets, mud, tape, and labor hours by phase.',
     },
     {
       icon: Download,
@@ -46,12 +46,12 @@ export default function Landing() {
     {
       number: '2',
       title: 'Review AI Detections',
-      description: 'Our AI detects rooms automatically. Review, edit, and refine as needed.',
+      description: 'Our AI detects walls automatically. Review, edit, and refine as needed.',
     },
     {
       number: '3',
-      title: 'Generate Estimate',
-      description: 'Expand into detailed line items with material costs and labor hours.',
+      title: 'Generate Takeoff',
+      description: 'Get complete material list: framing, hanging, finishing with labor hours.',
     },
     {
       number: '4',
@@ -63,19 +63,19 @@ export default function Landing() {
   const testimonials = [
     {
       name: 'Mike Johnson',
-      company: 'Johnson Painting Co.',
-      text: 'Cut my estimating time from 3 hours to 15 minutes. This is a game-changer.',
+      company: 'Johnson Drywall Co.',
+      text: 'Cut my takeoff time from 3 hours to 15 minutes. This is a game-changer.',
       rating: 5,
     },
     {
       name: 'Sarah Williams',
       company: 'Elite Contractors',
-      text: 'The detailed breakdowns help me win more bids. Clients love the transparency.',
+      text: 'The detailed material lists help me win more bids. Clients love the transparency.',
       rating: 5,
     },
     {
       name: 'David Chen',
-      company: 'Pro Paint Solutions',
+      company: 'Pro Drywall Solutions',
       text: 'Paid for itself in the first week. Best investment I\'ve made for my business.',
       rating: 5,
     },
@@ -89,9 +89,9 @@ export default function Landing() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <PaintBucket className="w-5 h-5 text-white" />
+                <Hammer className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">Painting.ai</span>
+              <span className="text-xl font-bold text-gray-900">Drywall.ai</span>
             </div>
 
             <div className="flex items-center space-x-4">
@@ -134,13 +134,13 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              AI-Powered Estimates for
+              AI-Powered Drywall Takeoffs
               <br />
-              <span className="text-primary-600">Painting Contractors</span>
+              <span className="text-primary-600">in 60 Seconds</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Upload a floor plan, get a detailed estimate in minutes. No more manual takeoffs.
-              No more spreadsheet headaches. Just upload, review, and win bids.
+              Upload floor plan → Get complete material list with studs, sheets, mud, tape, and labor hours.
+              No more manual takeoffs. No more spreadsheet headaches. Just upload, review, and win bids.
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-8">
@@ -293,7 +293,7 @@ export default function Landing() {
             Ready to Transform Your Estimating Process?
           </h2>
           <p className="text-xl text-primary-100 mb-8">
-            Join hundreds of contractors who save hours every week with Painting.ai
+            Join hundreds of contractors who save hours every week with Drywall.ai
           </p>
           <button
             onClick={handleGetStarted}
@@ -317,7 +317,7 @@ export default function Landing() {
                 <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                   <PaintBucket className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white">Painting.ai</span>
+                <span className="text-xl font-bold text-white">Drywall.ai</span>
               </div>
               <p className="text-sm">
                 AI-powered takeoffs for painting contractors
@@ -354,7 +354,7 @@ export default function Landing() {
           </div>
 
           <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; 2026 Painting.ai Inc. All rights reserved.</p>
+            <p>&copy; 2026 Drywall.ai Inc. All rights reserved.</p>
           </div>
         </div>
       </footer>

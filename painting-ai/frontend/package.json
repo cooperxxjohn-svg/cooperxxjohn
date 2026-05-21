@@ -1,7 +1,8 @@
 {
-  "name": "painting-ai-frontend",
+  "name": "drywall-ai-frontend",
   "private": true,
   "version": "0.1.0",
+  "description": "AI-powered drywall takeoff system",
   "type": "module",
   "scripts": {
     "dev": "vite",
