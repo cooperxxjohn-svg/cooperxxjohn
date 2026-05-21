@@ -108,7 +108,9 @@ describe('Register Page', () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(api.register).toHaveBeenCalledWith({
+      expect(api.register).toHaveBeenCalled()
+      const callArgs = api.register.mock.calls[0][0]
+      expect(callArgs).toEqual({
         name: 'John Doe',
         email: 'john@example.com',
         password: 'password123',
@@ -150,7 +152,9 @@ describe('Register Page', () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(api.register).toHaveBeenCalledWith({
+      expect(api.register).toHaveBeenCalled()
+      const callArgs = api.register.mock.calls[0][0]
+      expect(callArgs).toEqual({
         name: 'John Doe',
         email: 'john@example.com',
         password: 'password123',

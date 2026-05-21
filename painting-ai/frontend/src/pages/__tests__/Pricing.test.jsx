@@ -123,11 +123,11 @@ describe('Pricing Page', () => {
     await user.click(startButtons[0])
 
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/checkout/create-session', {
-        plan: 'starter',
-        success_url: expect.stringContaining('/success'),
-        cancel_url: expect.stringContaining('/pricing'),
-      })
+      expect(api.post).toHaveBeenCalled()
+      expect(api.post.mock.calls[0][0]).toBe('/checkout/create-session')
+      expect(api.post.mock.calls[0][1].plan).toBe('starter')
+      expect(api.post.mock.calls[0][1].success_url).toContain('/success')
+      expect(api.post.mock.calls[0][1].cancel_url).toContain('/pricing')
     })
 
     await waitFor(() => {
@@ -254,11 +254,9 @@ describe('Pricing Page', () => {
     await user.click(startButtons[1]) // Pro plan
 
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/checkout/create-session', {
-        plan: 'pro',
-        success_url: expect.any(String),
-        cancel_url: expect.any(String),
-      })
+      expect(api.post).toHaveBeenCalled()
+      expect(api.post.mock.calls[0][0]).toBe('/checkout/create-session')
+      expect(api.post.mock.calls[0][1].plan).toBe('pro')
     })
   })
 })

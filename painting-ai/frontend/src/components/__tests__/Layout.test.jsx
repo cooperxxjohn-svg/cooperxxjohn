@@ -23,9 +23,12 @@ describe('Layout Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    useAuthStore.mockReturnValue({
-      user: mockUser,
-      clearAuth: mockClearAuth,
+    useAuthStore.mockImplementation((selector) => {
+      const state = {
+        user: mockUser,
+        clearAuth: mockClearAuth,
+      }
+      return selector ? selector(state) : state
     })
   })
 
@@ -192,9 +195,12 @@ describe('Layout Component', () => {
 
   it('displays user as fallback when no name', () => {
     const userWithoutName = { ...mockUser, name: null }
-    useAuthStore.mockReturnValue({
-      user: userWithoutName,
-      clearAuth: mockClearAuth,
+    useAuthStore.mockImplementation((selector) => {
+      const state = {
+        user: userWithoutName,
+        clearAuth: mockClearAuth,
+      }
+      return selector ? selector(state) : state
     })
 
     renderWithProviders(<Layout />)
@@ -205,9 +211,12 @@ describe('Layout Component', () => {
   it('displays trial plan with capitalized text', async () => {
     const user = userEvent.setup()
     const trialUser = { ...mockUser, plan: 'trial' }
-    useAuthStore.mockReturnValue({
-      user: trialUser,
-      clearAuth: mockClearAuth,
+    useAuthStore.mockImplementation((selector) => {
+      const state = {
+        user: trialUser,
+        clearAuth: mockClearAuth,
+      }
+      return selector ? selector(state) : state
     })
 
     renderWithProviders(<Layout />)

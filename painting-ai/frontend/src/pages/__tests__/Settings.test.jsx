@@ -101,7 +101,9 @@ describe('Settings Page', () => {
     await user.click(saveButton)
 
     await waitFor(() => {
-      expect(api.put).toHaveBeenCalledWith('/users/me', {
+      expect(api.put).toHaveBeenCalled()
+      expect(api.put.mock.calls[0][0]).toBe('/users/me')
+      expect(api.put.mock.calls[0][1]).toEqual({
         name: 'Updated Name',
         email: mockUser.email,
       })
@@ -210,9 +212,9 @@ describe('Settings Page', () => {
     await user.click(manageButton)
 
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/checkout/portal', {
-        return_url: expect.stringContaining('/dashboard/settings?tab=billing'),
-      })
+      expect(api.post).toHaveBeenCalled()
+      expect(api.post.mock.calls[0][0]).toBe('/checkout/portal')
+      expect(api.post.mock.calls[0][1].return_url).toContain('/dashboard/settings?tab=billing')
     })
 
     await waitFor(() => {

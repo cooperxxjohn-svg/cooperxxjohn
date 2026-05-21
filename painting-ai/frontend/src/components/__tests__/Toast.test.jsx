@@ -58,13 +58,15 @@ describe('Toast Component', () => {
   })
 
   it('calls onClose when close button is clicked', async () => {
-    const user = userEvent.setup({ delay: null })
+    vi.useRealTimers()
+    const user = userEvent.setup()
     render(<Toast message="Test message" onClose={mockOnClose} />)
 
     const closeButton = screen.getByRole('button')
     await user.click(closeButton)
 
     expect(mockOnClose).toHaveBeenCalledTimes(1)
+    vi.useFakeTimers()
   })
 
   it('auto-dismisses after default duration', () => {
@@ -204,7 +206,7 @@ describe('Toast Component', () => {
 
     const icons = container.querySelectorAll('svg')
     const mainIcon = icons[0] // First icon is the status icon
-    expect(mainIcon?.className).toContain('green')
+    expect(mainIcon?.classList.toString()).toContain('green')
   })
 
   it('icon has correct color for error type', () => {
@@ -212,7 +214,7 @@ describe('Toast Component', () => {
 
     const icons = container.querySelectorAll('svg')
     const mainIcon = icons[0]
-    expect(mainIcon?.className).toContain('red')
+    expect(mainIcon?.classList.toString()).toContain('red')
   })
 
   it('icon has correct color for warning type', () => {
@@ -220,7 +222,7 @@ describe('Toast Component', () => {
 
     const icons = container.querySelectorAll('svg')
     const mainIcon = icons[0]
-    expect(mainIcon?.className).toContain('yellow')
+    expect(mainIcon?.classList.toString()).toContain('yellow')
   })
 
   it('icon has correct color for info type', () => {
@@ -228,6 +230,6 @@ describe('Toast Component', () => {
 
     const icons = container.querySelectorAll('svg')
     const mainIcon = icons[0]
-    expect(mainIcon?.className).toContain('blue')
+    expect(mainIcon?.classList.toString()).toContain('blue')
   })
 })

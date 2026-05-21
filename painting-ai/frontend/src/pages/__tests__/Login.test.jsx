@@ -99,7 +99,9 @@ describe('Login Page', () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(api.login).toHaveBeenCalledWith({
+      expect(api.login).toHaveBeenCalled()
+      const callArgs = api.login.mock.calls[0][0]
+      expect(callArgs).toEqual({
         email: 'test@example.com',
         password: 'password123',
       })
