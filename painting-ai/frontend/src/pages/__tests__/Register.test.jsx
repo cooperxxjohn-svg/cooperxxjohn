@@ -28,8 +28,11 @@ describe('Register Page', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    useAuthStore.mockReturnValue({
-      setAuth: mockSetAuth,
+    useAuthStore.mockImplementation((selector) => {
+      const state = {
+        setAuth: mockSetAuth,
+      }
+      return selector ? selector(state) : state
     })
   })
 

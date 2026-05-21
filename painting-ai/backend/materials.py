@@ -24,7 +24,7 @@ class MaterialDatabase:
         self.materials = self._load_materials()
 
     def _init_database(self):
-        """Initialize with common paint materials"""
+        """Initialize with common paint materials - Real 2026 pricing"""
         initial_data = {
             "paint": {
                 "primer": [
@@ -33,22 +33,39 @@ class MaterialDatabase:
                         "name": "Sherwin-Williams PrepRite ProBlock Interior Primer",
                         "manufacturer": "Sherwin-Williams",
                         "category": "primer",
-                        "coverage": 400,  # sqft per gallon
-                        "price": 42.99,
+                        "coverage": 250,  # sqft per gallon (realistic per PDCA standards)
+                        "price": 46.00,
+                        "contractor_price": 36.80,  # 20% contractor discount
                         "unit": "gallon",
                         "product_code": "B28W00750",
-                        "sheen": "flat"
+                        "sheen": "flat",
+                        "tier": "standard"
                     },
                     {
                         "id": "bm_fresh_start",
                         "name": "Benjamin Moore Fresh Start Multi-Purpose Primer",
                         "manufacturer": "Benjamin Moore",
                         "category": "primer",
-                        "coverage": 400,
-                        "price": 45.99,
+                        "coverage": 250,
+                        "price": 52.00,
+                        "contractor_price": 44.20,  # 15% contractor discount
                         "unit": "gallon",
                         "product_code": "N023",
-                        "sheen": "flat"
+                        "sheen": "flat",
+                        "tier": "premium"
+                    },
+                    {
+                        "id": "behr_primer",
+                        "name": "BEHR Premium Plus Interior Primer & Sealer",
+                        "manufacturer": "BEHR",
+                        "category": "primer",
+                        "coverage": 250,
+                        "price": 30.00,
+                        "contractor_price": 27.00,
+                        "unit": "gallon",
+                        "product_code": "PR10",
+                        "sheen": "flat",
+                        "tier": "economy"
                     }
                 ],
                 "interior_paint": [
@@ -58,11 +75,14 @@ class MaterialDatabase:
                         "manufacturer": "Sherwin-Williams",
                         "category": "interior_paint",
                         "coverage": 400,
-                        "price": 52.99,
+                        "price": 53.00,
+                        "contractor_price": 42.40,  # 20% discount
                         "unit": "gallon",
                         "product_code": "B20W00751",
                         "sheen": "eggshell",
-                        "voc": "zero"
+                        "voc": "zero",
+                        "tier": "standard",
+                        "use_case": "Commercial ceilings, low-traffic walls"
                     },
                     {
                         "id": "sw_promar_400",
@@ -70,10 +90,69 @@ class MaterialDatabase:
                         "manufacturer": "Sherwin-Williams",
                         "category": "interior_paint",
                         "coverage": 400,
-                        "price": 65.99,
+                        "price": 66.00,
+                        "contractor_price": 52.80,  # 20% discount
                         "unit": "gallon",
                         "product_code": "B30W00750",
-                        "sheen": "eggshell"
+                        "sheen": "eggshell",
+                        "tier": "standard",
+                        "use_case": "Commercial offices, standard residential"
+                    },
+                    {
+                        "id": "sw_superpaint",
+                        "name": "Sherwin-Williams SuperPaint Interior Latex",
+                        "manufacturer": "Sherwin-Williams",
+                        "category": "interior_paint",
+                        "coverage": 400,
+                        "price": 65.49,
+                        "contractor_price": 52.40,
+                        "unit": "gallon",
+                        "product_code": "A89",
+                        "sheen": "eggshell",
+                        "tier": "standard",
+                        "use_case": "Residential walls, high-traffic areas"
+                    },
+                    {
+                        "id": "sw_cashmere",
+                        "name": "Sherwin-Williams Cashmere Interior Acrylic Latex",
+                        "manufacturer": "Sherwin-Williams",
+                        "category": "interior_paint",
+                        "coverage": 400,
+                        "price": 60.49,
+                        "contractor_price": 48.40,
+                        "unit": "gallon",
+                        "product_code": "A102",
+                        "sheen": "eggshell",
+                        "tier": "premium",
+                        "use_case": "Smooth finish, premium residential"
+                    },
+                    {
+                        "id": "sw_emerald",
+                        "name": "Sherwin-Williams Emerald Interior Acrylic Latex",
+                        "manufacturer": "Sherwin-Williams",
+                        "category": "interior_paint",
+                        "coverage": 425,
+                        "price": 74.49,
+                        "contractor_price": 59.60,  # 20% discount
+                        "unit": "gallon",
+                        "product_code": "K38",
+                        "sheen": "eggshell",
+                        "tier": "premium",
+                        "use_case": "Luxury residential, one-coat coverage"
+                    },
+                    {
+                        "id": "sw_duration",
+                        "name": "Sherwin-Williams Duration Home Interior Acrylic Latex",
+                        "manufacturer": "Sherwin-Williams",
+                        "category": "interior_paint",
+                        "coverage": 400,
+                        "price": 70.00,
+                        "contractor_price": 56.00,
+                        "unit": "gallon",
+                        "product_code": "H53",
+                        "sheen": "eggshell",
+                        "tier": "premium",
+                        "use_case": "High durability residential"
                     },
                     {
                         "id": "bm_regal_select",
@@ -81,23 +160,83 @@ class MaterialDatabase:
                         "manufacturer": "Benjamin Moore",
                         "category": "interior_paint",
                         "coverage": 400,
-                        "price": 74.99,
+                        "price": 75.00,
+                        "contractor_price": 66.00,  # 12% discount (BM has less discount)
                         "unit": "gallon",
                         "product_code": "N548",
                         "sheen": "eggshell",
-                        "premium": True
+                        "tier": "premium",
+                        "use_case": "High-end residential and commercial"
+                    },
+                    {
+                        "id": "bm_aura",
+                        "name": "Benjamin Moore Aura Interior Paint",
+                        "manufacturer": "Benjamin Moore",
+                        "category": "interior_paint",
+                        "coverage": 425,
+                        "price": 90.00,
+                        "contractor_price": 79.20,  # 12% discount
+                        "unit": "gallon",
+                        "product_code": "N522",
+                        "sheen": "matte",
+                        "tier": "ultra_premium",
+                        "use_case": "Luxury condos, designer projects"
+                    },
+                    {
+                        "id": "bm_ben",
+                        "name": "Benjamin Moore ben Interior Paint",
+                        "manufacturer": "Benjamin Moore",
+                        "category": "interior_paint",
+                        "coverage": 400,
+                        "price": 50.00,
+                        "contractor_price": 44.00,
+                        "unit": "gallon",
+                        "product_code": "N625",
+                        "sheen": "eggshell",
+                        "tier": "standard",
+                        "use_case": "Budget-friendly BM option"
                     },
                     {
                         "id": "behr_premium_plus",
-                        "name": "BEHR Premium Plus Interior Paint",
+                        "name": "BEHR Premium Plus Interior Paint & Primer",
                         "manufacturer": "BEHR",
                         "category": "interior_paint",
                         "coverage": 400,
                         "price": 38.98,
+                        "contractor_price": 35.00,  # 10% discount
                         "unit": "gallon",
                         "product_code": "PR17",
                         "sheen": "eggshell",
-                        "economy": True
+                        "tier": "economy",
+                        "use_case": "Rental units, budget projects"
+                    },
+                    {
+                        "id": "behr_ultra",
+                        "name": "BEHR Ultra Interior Paint & Primer",
+                        "manufacturer": "BEHR",
+                        "category": "interior_paint",
+                        "coverage": 400,
+                        "price": 45.98,
+                        "contractor_price": 41.40,
+                        "unit": "gallon",
+                        "product_code": "UR17",
+                        "sheen": "eggshell",
+                        "tier": "standard",
+                        "use_case": "Better coverage, stain blocking"
+                    },
+                    {
+                        "id": "sw_captivate",
+                        "name": "Sherwin-Williams Captivate Interior Latex",
+                        "manufacturer": "Sherwin-Williams",
+                        "category": "interior_paint",
+                        "coverage": 375,
+                        "price": 38.49,
+                        "contractor_price": 30.80,
+                        "unit": "gallon",
+                        "product_code": "CAP",
+                        "sheen": "eggshell",
+                        "tier": "economy",
+                        "use_case": "Budget SW option, rental properties"
                     }
                 ]
             },
@@ -208,24 +347,34 @@ class MaterialDatabase:
         return None
 
     def get_recommended_materials(self, project_type: str = "commercial") -> dict:
-        """Get recommended materials for a project"""
+        """Get recommended materials for a project - Updated with 2026 pricing"""
         if project_type == "commercial":
             return {
                 "primer": self.get_material_by_id("sw_prep_primer"),
                 "paint": self.get_material_by_id("sw_promar_400"),
-                "quality": "mid-range"
+                "quality": "standard",
+                "use_contractor_pricing": True
             }
         elif project_type == "premium":
             return {
                 "primer": self.get_material_by_id("bm_fresh_start"),
                 "paint": self.get_material_by_id("bm_regal_select"),
-                "quality": "premium"
+                "quality": "premium",
+                "use_contractor_pricing": True
+            }
+        elif project_type == "luxury":
+            return {
+                "primer": self.get_material_by_id("bm_fresh_start"),
+                "paint": self.get_material_by_id("bm_aura"),
+                "quality": "ultra_premium",
+                "use_contractor_pricing": True
             }
         else:  # economy
             return {
-                "primer": self.get_material_by_id("sw_prep_primer"),
+                "primer": self.get_material_by_id("behr_primer"),
                 "paint": self.get_material_by_id("behr_premium_plus"),
-                "quality": "economy"
+                "quality": "economy",
+                "use_contractor_pricing": True
             }
 
     def calculate_supplies_needed(self, total_sqft: float) -> List[dict]:

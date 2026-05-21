@@ -363,26 +363,37 @@ All dimensions in FEET.
 
 
 class PaintCalculator:
-    """Calculate paint requirements from detected surfaces"""
+    """Calculate paint requirements from detected surfaces - Updated with 2026 industry standards"""
 
-    # Coverage rates (sqft per gallon)
+    # Coverage rates (sqft per gallon) - Updated per PDCA standards 2026
     COVERAGE_RATES = {
         "smooth_drywall": 400,
         "textured_drywall": 350,
+        "rough_textured": 275,
         "smooth_plaster": 400,
         "rough_plaster": 325,
         "wood": 350,
         "metal": 500,
-        "concrete": 300,
+        "concrete_smooth": 300,
+        "concrete_porous": 250,
+        "brick_stucco": 225,
         "default": 400
     }
 
-    # Production rates (sqft per hour)
+    # Primer coverage rates - Lower per industry standards
+    PRIMER_COVERAGE_RATES = {
+        "all_surfaces": 250,
+        "porous_surfaces": 200,
+        "sealed_surfaces": 300,
+        "default": 250
+    }
+
+    # Production rates (sqft per hour) - Updated with real contractor data
     PRODUCTION_RATES = {
-        "wall": 300,
-        "ceiling": 350,
-        "trim": 200,
-        "door": 30
+        "wall": 200,  # Roller application (more realistic than 300)
+        "ceiling": 175,  # Overhead work is slower
+        "trim": 100,  # Detail work, brush only
+        "door": 80  # Per sqft (or 0.75 hours per door)
     }
 
     def __init__(self, surface_type: str = "smooth_drywall"):

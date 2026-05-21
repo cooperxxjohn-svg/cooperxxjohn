@@ -28,10 +28,17 @@ vi.mock('react-router-dom', async () => {
 describe('Pricing Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
   })
 
   it('renders pricing page with header', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     expect(screen.getByText('Simple, Transparent Pricing')).toBeInTheDocument()
@@ -40,7 +47,10 @@ describe('Pricing Page', () => {
   })
 
   it('displays all three pricing plans', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     expect(screen.getByText('Starter')).toBeInTheDocument()
@@ -49,7 +59,10 @@ describe('Pricing Page', () => {
   })
 
   it('displays plan descriptions', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     expect(screen.getByText('Perfect for solo contractors')).toBeInTheDocument()
@@ -58,7 +71,10 @@ describe('Pricing Page', () => {
   })
 
   it('displays plan prices', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     expect(screen.getByText('$99')).toBeInTheDocument()
@@ -67,14 +83,20 @@ describe('Pricing Page', () => {
   })
 
   it('marks Pro plan as most popular', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     expect(screen.getByText('Most Popular')).toBeInTheDocument()
   })
 
   it('displays plan features', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     // Starter features
@@ -97,7 +119,10 @@ describe('Pricing Page', () => {
 
   it('redirects to register when unauthenticated user clicks subscribe', async () => {
     const user = userEvent.setup()
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
 
     renderWithProviders(<Pricing />)
 
@@ -112,7 +137,10 @@ describe('Pricing Page', () => {
 
   it('creates checkout session for authenticated user', async () => {
     const user = userEvent.setup()
-    useAuthStore.mockReturnValue({ isAuthenticated: true })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: true }
+      return selector ? selector(state) : state
+    })
     api.post.mockResolvedValueOnce({
       data: { checkout_url: 'https://checkout.stripe.com/session' },
     })
@@ -137,7 +165,10 @@ describe('Pricing Page', () => {
 
   it('shows loading state during checkout', async () => {
     const user = userEvent.setup()
-    useAuthStore.mockReturnValue({ isAuthenticated: true })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: true }
+      return selector ? selector(state) : state
+    })
     api.post.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1000)))
 
     renderWithProviders(<Pricing />)
@@ -152,7 +183,8 @@ describe('Pricing Page', () => {
 
   it('handles checkout error', async () => {
     const user = userEvent.setup()
-    useAuthStore.mockReturnValue({ isAuthenticated: true })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: true })
     const errorMessage = 'Payment setup failed'
     api.post.mockRejectedValueOnce({
       response: { data: { detail: errorMessage } },
@@ -172,7 +204,10 @@ describe('Pricing Page', () => {
 
   it('opens email for enterprise plan', async () => {
     const user = userEvent.setup()
-    useAuthStore.mockReturnValue({ isAuthenticated: true })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: true }
+      return selector ? selector(state) : state
+    })
 
     renderWithProviders(<Pricing />)
 
@@ -187,7 +222,10 @@ describe('Pricing Page', () => {
   })
 
   it('displays FAQ section', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     expect(screen.getByText('Frequently Asked Questions')).toBeInTheDocument()
@@ -198,7 +236,10 @@ describe('Pricing Page', () => {
   })
 
   it('displays FAQ answers', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     expect(screen.getByText(/all plans include a 14-day free trial/i)).toBeInTheDocument()
@@ -208,7 +249,10 @@ describe('Pricing Page', () => {
   })
 
   it('renders plan buttons with correct text', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     const startTrialButtons = screen.getAllByRole('button', { name: /start free trial/i })
@@ -219,7 +263,10 @@ describe('Pricing Page', () => {
   })
 
   it('applies correct styling to popular plan', () => {
-    useAuthStore.mockReturnValue({ isAuthenticated: false })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: false }
+      return selector ? selector(state) : state
+    })
     renderWithProviders(<Pricing />)
 
     const popularBadge = screen.getByText('Most Popular')
@@ -228,7 +275,10 @@ describe('Pricing Page', () => {
 
   it('disables button during checkout', async () => {
     const user = userEvent.setup()
-    useAuthStore.mockReturnValue({ isAuthenticated: true })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: true }
+      return selector ? selector(state) : state
+    })
     api.post.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1000)))
 
     renderWithProviders(<Pricing />)
@@ -243,7 +293,10 @@ describe('Pricing Page', () => {
 
   it('creates checkout for Pro plan', async () => {
     const user = userEvent.setup()
-    useAuthStore.mockReturnValue({ isAuthenticated: true })
+    useAuthStore.mockImplementation((selector) => {
+      const state = { isAuthenticated: true }
+      return selector ? selector(state) : state
+    })
     api.post.mockResolvedValueOnce({
       data: { checkout_url: 'https://checkout.stripe.com/session' },
     })
