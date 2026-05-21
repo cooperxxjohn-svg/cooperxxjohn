@@ -205,56 +205,42 @@ async def health_check():
 @app.get("/health/database")
 async def database_health_check():
     """
-    Comprehensive database health check
-
-    Returns:
-    - Database connectivity status
-    - Connection pool status
-    - Response time
-    - Basic statistics
-
-    Used by monitoring/alerting systems
+    Database health check with connection pool monitoring
     """
-    from database_monitor import DatabaseMonitor
-    import time
-
     start_time = time.time()
 
     try:
-        monitor = DatabaseMonitor()
+        if not db_service:
+            return {
+                "status": "not_configured",
+                "message": "Using JSON database (fallback mode)",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+        # Test connection
+        with db_service.get_session() as session:
+            session.execute("SELECT 1")
 
         # Get pool status
-        pool_status = monitor.get_pool_status()
+        pool_status = db_service.get_pool_status()
 
-        # Get database stats
-        db_stats = monitor.get_database_stats()
-
-        # Check for slow queries
-        slow_queries = monitor.get_slow_queries(threshold_seconds=1.0)
-
-        response_time = time.time() - start_time
+        latency_ms = round((time.time() - start_time) * 1000, 2)
 
         return {
             "status": "healthy",
-            "response_time_ms": round(response_time * 1000, 2),
-            "database": {
-                "size": db_stats["size"],
-                "connections": db_stats["total_connections"],
-                "active_queries": db_stats["active_queries"]
-            },
-            "connection_pool": {
+            "pool": {
                 "size": pool_status["pool_size"],
+                "checked_in": pool_status["checked_in"],
                 "checked_out": pool_status["checked_out"],
-                "utilization_percent": round(pool_status["utilization_percent"], 1)
+                "overflow": pool_status["overflow"],
+                "total_connections": pool_status["total_connections"]
             },
-            "performance": {
-                "slow_queries_count": len(slow_queries)
-            },
+            "latency_ms": latency_ms,
             "timestamp": datetime.utcnow().isoformat()
         }
 
     except Exception as e:
-        response_time = time.time() - start_time
+        latency_ms = round((time.time() - start_time) * 1000, 2)
         return {
             "status": "unhealthy",
             "response_time_ms": round(response_time * 1000, 2),
