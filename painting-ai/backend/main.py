@@ -17,6 +17,7 @@ from pathlib import Path
 
 from painting_detector import PaintingDetector, PaintCalculator, Room, Surface
 from database import Database
+from database_service import DatabaseService
 from export_generator import ExportGenerator
 from assembly_expansion import AssemblyExpander
 from auth_jwt import AuthManager, UserRegister, UserLogin, Token, get_auth_manager
@@ -24,6 +25,9 @@ from payments import PaymentService, PLANS, get_payment_service
 from email_service import get_email_service
 from analytics import AnalyticsService, get_analytics_service
 import background_tasks as bg_tasks
+from config import get_config
+import time
+import redis
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -41,6 +45,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Load configuration
+config = get_config()
+
 # Configuration
 UPLOAD_DIR = Path("uploads")
 OUTPUT_DIR = Path("outputs")
@@ -48,18 +55,49 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Initialize services
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-if not ANTHROPIC_API_KEY:
-    raise RuntimeError("ANTHROPIC_API_KEY environment variable not set")
-
-detector = PaintingDetector(ANTHROPIC_API_KEY)
+detector = PaintingDetector(config.ai.anthropic_api_key)
 calculator = PaintCalculator()
-db = Database()
+
+# Use PostgreSQL if configured, otherwise fall back to JSON
+try:
+    db_service = DatabaseService()
+    db = Database()  # Keep for backwards compatibility
+    logger_info = "Using PostgreSQL database"
+except Exception as e:
+    db_service = None
+    db = Database()  # Fall back to JSON
+    logger_info = f"Falling back to JSON database: {e}"
+
+print(f"[Database] {logger_info}")
+
 exporter = ExportGenerator()
 auth_manager = AuthManager(db)
 payment_service = PaymentService(db)
 email_service = get_email_service()
 analytics_service = AnalyticsService(db)
+
+# Initialize S3 service if enabled
+s3_service = None
+if config.s3.enabled and config.s3.is_configured():
+    try:
+        from s3_service import S3Service
+        s3_service = S3Service()
+        print("[Storage] Using AWS S3")
+    except Exception as e:
+        print(f"[Storage] S3 initialization failed, using local storage: {e}")
+        s3_service = None
+else:
+    print("[Storage] Using local filesystem")
+
+# Initialize Redis client if configured
+redis_client = None
+try:
+    redis_client = redis.from_url(config.redis.url, decode_responses=True)
+    redis_client.ping()
+    print("[Cache] Redis connected")
+except Exception as e:
+    print(f"[Cache] Redis not available: {e}")
+    redis_client = None
 
 
 # Pydantic models
@@ -115,11 +153,114 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    """
+    Overall system health check
+    Returns status of all critical services
+    """
+    timestamp = datetime.utcnow().isoformat()
+    services = {}
+
+    # Check database
+    try:
+        if db_service:
+            with db_service.get_session() as session:
+                session.execute("SELECT 1")
+            services["database"] = "healthy"
+        else:
+            services["database"] = "json_fallback"
+    except Exception as e:
+        services["database"] = "unhealthy"
+
+    # Check Redis
+    try:
+        if redis_client:
+            redis_client.ping()
+            services["redis"] = "healthy"
+        else:
+            services["redis"] = "not_configured"
+    except Exception:
+        services["redis"] = "unhealthy"
+
+    # Check S3
+    if s3_service:
+        services["s3"] = "configured"
+    else:
+        services["s3"] = "not_configured"
+
+    # Overall status
+    critical_services = ["database"]
+    status = "healthy" if all(
+        services.get(s) in ["healthy", "json_fallback", "configured"]
+        for s in critical_services
+    ) else "unhealthy"
+
     return {
-        "status": "healthy",
-        "detector": "ready",
-        "database": "connected" if db.is_connected() else "disconnected"
+        "status": status,
+        "timestamp": timestamp,
+        "services": services,
+        "version": "0.2.0"
     }
+
+
+@app.get("/health/database")
+async def database_health_check():
+    """
+    Comprehensive database health check
+
+    Returns:
+    - Database connectivity status
+    - Connection pool status
+    - Response time
+    - Basic statistics
+
+    Used by monitoring/alerting systems
+    """
+    from database_monitor import DatabaseMonitor
+    import time
+
+    start_time = time.time()
+
+    try:
+        monitor = DatabaseMonitor()
+
+        # Get pool status
+        pool_status = monitor.get_pool_status()
+
+        # Get database stats
+        db_stats = monitor.get_database_stats()
+
+        # Check for slow queries
+        slow_queries = monitor.get_slow_queries(threshold_seconds=1.0)
+
+        response_time = time.time() - start_time
+
+        return {
+            "status": "healthy",
+            "response_time_ms": round(response_time * 1000, 2),
+            "database": {
+                "size": db_stats["size"],
+                "connections": db_stats["total_connections"],
+                "active_queries": db_stats["active_queries"]
+            },
+            "connection_pool": {
+                "size": pool_status["pool_size"],
+                "checked_out": pool_status["checked_out"],
+                "utilization_percent": round(pool_status["utilization_percent"], 1)
+            },
+            "performance": {
+                "slow_queries_count": len(slow_queries)
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        response_time = time.time() - start_time
+        return {
+            "status": "unhealthy",
+            "response_time_ms": round(response_time * 1000, 2),
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 
 # ==============================================================================

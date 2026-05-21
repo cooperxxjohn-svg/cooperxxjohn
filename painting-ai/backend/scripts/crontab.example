@@ -1,0 +1,93 @@
+# Painting.ai Database Backup Cron Configuration
+#
+# Install with:
+#   crontab -e
+#   (paste contents below)
+#
+# Or:
+#   crontab crontab.example
+#
+# Verify:
+#   crontab -l
+#
+# Logs:
+#   tail -f /var/log/cron
+#   tail -f /tmp/db_backups/backup.log
+
+# Set environment variables
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+BACKUP_DIR=/tmp/db_backups
+DATABASE_URL=postgresql://paintingai:changeme123@localhost:5432/paintingai
+
+# ==============================================================================
+# Database Backups
+# ==============================================================================
+
+# Daily backup - Every day at 2:00 AM
+0 2 * * * /home/user/cooperxxjohn/painting-ai/backend/scripts/backup_database.sh daily >> /tmp/db_backups/backup.log 2>&1
+
+# Weekly backup - Every Sunday at 3:00 AM
+0 3 * * 0 /home/user/cooperxxjohn/painting-ai/backend/scripts/backup_database.sh weekly >> /tmp/db_backups/backup.log 2>&1
+
+# Monthly backup - First day of month at 4:00 AM
+0 4 1 * * /home/user/cooperxxjohn/painting-ai/backend/scripts/backup_database.sh monthly >> /tmp/db_backups/backup.log 2>&1
+
+# ==============================================================================
+# Database Monitoring
+# ==============================================================================
+
+# Monitor database health - Every 15 minutes
+*/15 * * * * cd /home/user/cooperxxjohn/painting-ai/backend && python database_monitor.py >> /tmp/db_backups/monitor.log 2>&1
+
+# ==============================================================================
+# Database Maintenance
+# ==============================================================================
+
+# Vacuum analyze - Every Sunday at 1:00 AM (before weekly backup)
+0 1 * * 0 psql -h localhost -U paintingai -d paintingai -c "VACUUM ANALYZE;" >> /tmp/db_backups/maintenance.log 2>&1
+
+# Update table statistics - Every day at 1:00 AM (before daily backup)
+0 1 * * * psql -h localhost -U paintingai -d paintingai -c "ANALYZE;" >> /tmp/db_backups/maintenance.log 2>&1
+
+# ==============================================================================
+# Cleanup
+# ==============================================================================
+
+# Clean up old local backups - Every day at 5:00 AM
+0 5 * * * find /tmp/db_backups -name "*.sql.gz" -mtime +7 -delete
+
+# Clean up old logs - Every week
+0 6 * * 0 find /tmp/db_backups -name "*.log" -mtime +30 -delete
+
+# ==============================================================================
+# Alerts
+# ==============================================================================
+
+# Check backup success - Every day at 2:30 AM (30 min after daily backup)
+30 2 * * * /home/user/cooperxxjohn/painting-ai/backend/scripts/check_backup_status.sh >> /tmp/db_backups/alerts.log 2>&1
+
+# ==============================================================================
+# Notes
+# ==============================================================================
+#
+# Cron schedule format:
+#   ┌───────────── minute (0 - 59)
+#   │ ┌───────────── hour (0 - 23)
+#   │ │ ┌───────────── day of month (1 - 31)
+#   │ │ │ ┌───────────── month (1 - 12)
+#   │ │ │ │ ┌───────────── day of week (0 - 6) (Sunday=0)
+#   │ │ │ │ │
+#   * * * * * command
+#
+# Common patterns:
+#   0 * * * *     - Every hour
+#   */15 * * * *  - Every 15 minutes
+#   0 0 * * *     - Daily at midnight
+#   0 0 * * 0     - Weekly on Sunday
+#   0 0 1 * *     - Monthly on 1st
+#
+# Environment:
+#   Set environment variables in .env file
+#   Source them in cron job: source /path/to/.env && command
+#

@@ -1,20 +1,28 @@
 """
 Database service layer - SQLAlchemy ORM
 Replaces simple JSON storage with production PostgreSQL
+Optimized for production with connection pooling and query optimization
 """
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker, Session, selectinload, joinedload
+from sqlalchemy.pool import QueuePool
 from contextlib import contextmanager
 import os
 from models import Base, User, Project, Room, Drawing, Organization, TeamMember
 from typing import Optional, List
 import uuid
 from datetime import datetime
+import logging
+import time
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class DatabaseService:
-    """Production database service using SQLAlchemy"""
+    """Production database service using SQLAlchemy with connection pooling"""
 
     def __init__(self, database_url: Optional[str] = None):
         if database_url is None:
@@ -23,8 +31,50 @@ class DatabaseService:
                 "postgresql://paintingai:changeme123@localhost:5432/paintingai"
             )
 
-        self.engine = create_engine(database_url, echo=False)
-        self.SessionLocal = sessionmaker(bind=self.engine)
+        # Production-grade connection pool configuration
+        self.engine = create_engine(
+            database_url,
+            echo=False,
+            poolclass=QueuePool,
+            pool_size=20,              # Base number of connections
+            max_overflow=10,           # Additional connections when pool is full
+            pool_timeout=30,           # Seconds to wait for connection
+            pool_recycle=3600,         # Recycle connections after 1 hour
+            pool_pre_ping=True,        # Test connections before use (handle stale connections)
+            echo_pool=False,           # Set to True for pool debugging
+        )
+
+        # Add connection pool event listeners for monitoring
+        event.listen(self.engine, 'connect', self._on_connect)
+        event.listen(self.engine, 'checkout', self._on_checkout)
+
+        self.SessionLocal = sessionmaker(
+            bind=self.engine,
+            autocommit=False,
+            autoflush=False,
+            expire_on_commit=False  # Prevent lazy loading issues after commit
+        )
+
+        logger.info(f"Database engine created with pool_size=20, max_overflow=10")
+
+    def _on_connect(self, dbapi_conn, connection_record):
+        """Called when a new database connection is created"""
+        logger.debug("New database connection established")
+
+    def _on_checkout(self, dbapi_conn, connection_record, connection_proxy):
+        """Called when a connection is checked out from the pool"""
+        logger.debug("Connection checked out from pool")
+
+    def get_pool_status(self) -> dict:
+        """Get current connection pool status for monitoring"""
+        pool = self.engine.pool
+        return {
+            "pool_size": pool.size(),
+            "checked_in": pool.checkedin(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+            "total_connections": pool.size() + pool.overflow()
+        }
 
     def create_tables(self):
         """Create all tables"""
@@ -32,11 +82,15 @@ class DatabaseService:
 
     @contextmanager
     def get_session(self) -> Session:
-        """Get database session with automatic cleanup"""
+        """Get database session with automatic cleanup and query timing"""
         session = self.SessionLocal()
+        start_time = time.time()
         try:
             yield session
             session.commit()
+            elapsed = time.time() - start_time
+            if elapsed > 1.0:  # Log slow transactions
+                logger.warning(f"Slow transaction: {elapsed:.2f}s")
         except Exception:
             session.rollback()
             raise
@@ -87,19 +141,31 @@ class DatabaseService:
             session.flush()
             return project
 
-    def get_project(self, project_id: str) -> Optional[Project]:
-        """Get project by ID"""
+    def get_project(self, project_id: str, load_relationships: bool = True) -> Optional[Project]:
+        """Get project by ID with optional eager loading of relationships"""
         with self.get_session() as session:
-            return session.query(Project).filter(Project.id == project_id).first()
+            query = session.query(Project)
+            if load_relationships:
+                query = query.options(
+                    selectinload(Project.rooms),
+                    selectinload(Project.drawings),
+                    selectinload(Project.materials)
+                )
+            return query.filter(Project.id == project_id).first()
 
-    def get_user_projects(self, user_id: str, limit: int = 100) -> List[Project]:
-        """Get all projects for a user"""
+    def get_user_projects(self, user_id: str, limit: int = 100, offset: int = 0) -> List[Project]:
+        """Get all projects for a user with pagination and eager loading"""
         with self.get_session() as session:
             return (
                 session.query(Project)
+                .options(
+                    selectinload(Project.rooms),
+                    selectinload(Project.drawings)
+                )
                 .filter(Project.owner_id == user_id)
                 .order_by(Project.created_at.desc())
                 .limit(limit)
+                .offset(offset)
                 .all()
             )
 

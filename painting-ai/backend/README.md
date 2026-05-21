@@ -112,46 +112,78 @@ API will be available at:
 
 ## 🗄️ Database
 
-### Using JSON (Development)
+### Production Setup (PostgreSQL + Redis)
 
-Default mode - no setup required. Data stored in:
-- `database.json` - Main data
-- `uploads/` - Uploaded files
+**Quick Start:**
+```bash
+# 1. Start database services
+docker-compose up -d postgres redis
 
-### Using PostgreSQL (Production)
+# 2. Run migrations
+cd backend
+./scripts/run_migrations.sh
+
+# 3. Verify setup
+pytest tests/test_database_migration.py -v
+```
+
+**For detailed setup, see:** [DATABASE_SETUP.md](../DATABASE_SETUP.md)
+
+This includes:
+- Docker Compose configuration
+- PostgreSQL + Redis setup
+- Alembic migrations
+- Connection pooling
+- Backup/restore procedures
+- Performance tuning
+- Troubleshooting guide
+
+### Quick Commands
 
 ```bash
-# Start PostgreSQL with Docker
-docker compose up -d postgres
+# Start databases
+docker-compose up -d postgres redis
 
 # Run migrations
 alembic upgrade head
 
-# Create new migration (after model changes)
+# Create new migration
 alembic revision --autogenerate -m "Description"
 
 # Rollback migration
 alembic downgrade -1
 
-# Seed demo data
-python seed_demo_data.py
+# Check migration status
+alembic current
+
+# Connect to database
+docker exec -it paintingai_db psql -U paintingai -d paintingai
 ```
 
 ### Database Models
 
-- **User** - User accounts with authentication
-- **Organization** - Company/team accounts
-- **Project** - Painting projects
-- **Room** - Rooms within projects
-- **Surface** - Walls, ceilings, trim
-- **Material** - Paint materials
-- **Assembly** - Line item assemblies
-- **Subscription** - Stripe subscriptions
-- **APIKey** - Public API keys
-- **Webhook** - Webhook configurations
-- **WebhookDelivery** - Webhook delivery logs
+Production schema includes:
 
-See `models.py` for complete schema.
+**Core:**
+- `users` - User accounts and authentication
+- `organizations` - Company/team accounts
+- `team_members` - Organization team members
+- `projects` - Painting projects with full tracking
+- `rooms` - Detailed room information
+- `drawings` - Uploaded floor plans
+- `material_items` - Project materials
+
+**Support:**
+- `templates` - Reusable templates
+- `assemblies` - Pre-built assemblies
+- `pricing_data` - Historical pricing data
+- `activities` - Activity logs
+- `notifications` - User notifications
+- `integrations` - Third-party integrations
+- `webhooks` - Webhook configurations
+- `api_usage` - API usage tracking
+
+See `models.py` for complete schema with all fields and relationships.
 
 ## 🧪 Testing
 
