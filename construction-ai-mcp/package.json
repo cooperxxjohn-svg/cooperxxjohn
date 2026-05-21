@@ -1,0 +1,31 @@
+{
+  "name": "construction-ai-mcp",
+  "version": "0.1.0",
+  "description": "Claude MCP server for construction takeoffs - AI-powered estimates for drywall, painting, concrete, and more",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "construction-ai-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "dev": "tsx src/index.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": ["mcp", "claude", "construction", "drywall", "estimating", "takeoff", "ai", "contractors"],
+  "author": "Construction AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/construction-ai-mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}
