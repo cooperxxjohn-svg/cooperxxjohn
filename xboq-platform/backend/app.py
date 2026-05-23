@@ -748,7 +748,7 @@ def refresh_token():
             return jsonify({"error": "Invalid token type"}), 401
 
         # Get user
-        user_id = payload.get('sub')
+        user_id = int(payload.get('sub'))  # Convert from string to int
         user = db.get_user(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 401
@@ -786,7 +786,7 @@ def get_current_user():
         return jsonify({"error": "Invalid or expired token"}), 401
 
     # Get user
-    user_id = payload.get('sub')
+    user_id = int(payload.get('sub'))  # Convert from string to int
     user = db.get_user(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 401
@@ -799,6 +799,133 @@ def get_current_user():
             "created_at": user.created_at.isoformat() if user.created_at else None
         }
     }), 200
+
+
+@app.route('/api/users/me', methods=['PUT'])
+def update_current_user():
+    """Update current user's profile (protected)"""
+    from auth import extract_token_from_header, decode_token
+
+    try:
+        # Authentication
+        token = extract_token_from_header()
+        if not token:
+            return jsonify({"error": "Authentication required"}), 401
+
+        payload = decode_token(token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired token"}), 401
+
+        user_id = int(payload.get('sub'))
+        current_user = db.get_user(user_id)
+        if not current_user:
+            return jsonify({"error": "User not found"}), 401
+
+        # Get update data
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Update allowed fields
+        name = data.get('name')
+
+        # Validate name if provided
+        if name is not None:
+            if len(name.strip()) == 0:
+                return jsonify({"error": "Name cannot be empty"}), 400
+            if len(name) > 100:
+                return jsonify({"error": "Name too long (max 100 characters)"}), 400
+
+        # Update user
+        updated_user = db.update_user(user_id, name=name)
+
+        if not updated_user:
+            return jsonify({"error": "Update failed"}), 500
+
+        logger.info(f"User profile updated: {updated_user.email}")
+
+        return jsonify({
+            "user": {
+                "id": updated_user.id,
+                "email": updated_user.email,
+                "name": updated_user.name,
+                "created_at": updated_user.created_at.isoformat() if updated_user.created_at else None,
+                "updated_at": updated_user.updated_at.isoformat() if updated_user.updated_at else None
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Profile update error: {e}", exc_info=True)
+        return jsonify({"error": "Profile update failed"}), 500
+
+
+@app.route('/api/users/me/password', methods=['PUT'])
+def change_password():
+    """Change current user's password (protected)"""
+    from auth import (
+        extract_token_from_header,
+        decode_token,
+        verify_password,
+        hash_password,
+        validate_password_strength
+    )
+
+    try:
+        # Authentication
+        token = extract_token_from_header()
+        if not token:
+            return jsonify({"error": "Authentication required"}), 401
+
+        payload = decode_token(token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired token"}), 401
+
+        user_id = int(payload.get('sub'))
+        current_user = db.get_user(user_id)
+        if not current_user:
+            return jsonify({"error": "User not found"}), 401
+
+        # Get password data
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+
+        if not current_password or not new_password:
+            return jsonify({"error": "Both current_password and new_password are required"}), 400
+
+        # Verify current password
+        if not current_user.password_hash:
+            return jsonify({"error": "Password not set for this user"}), 401
+
+        if not verify_password(current_password, current_user.password_hash):
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        # Validate new password strength
+        valid, error_message = validate_password_strength(new_password)
+        if not valid:
+            return jsonify({"error": "Weak password", "message": error_message}), 400
+
+        # Hash new password
+        new_password_hash = hash_password(new_password)
+
+        # Update password
+        updated_user = db.update_user(user_id, password_hash=new_password_hash)
+
+        if not updated_user:
+            return jsonify({"error": "Password update failed"}), 500
+
+        logger.info(f"Password changed for user: {updated_user.email}")
+
+        return jsonify({
+            "message": "Password updated successfully"
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Password change error: {e}", exc_info=True)
+        return jsonify({"error": "Password change failed"}), 500
 
 
 # ============================================================================
