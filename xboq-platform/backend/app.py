@@ -17,6 +17,7 @@ load_dotenv()
 from modules.boq_generator import BOQGenerator
 from modules.estimator import ConstructionEstimator
 from utils.pdf_processor import PDFProcessor
+from database import get_database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,6 +42,16 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 # Initialize services
 boq_generator = BOQGenerator()
 estimator = ConstructionEstimator()
+db = get_database()
+
+# Create default demo user for testing (until we have auth)
+try:
+    demo_user = db.get_user_by_email('demo@xboq.ai')
+    if not demo_user:
+        demo_user = db.create_user(email='demo@xboq.ai', name='Demo User')
+        logger.info(f"Created demo user: {demo_user.email}")
+except Exception as e:
+    logger.error(f"Error creating demo user: {e}")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -52,10 +63,12 @@ def allowed_file(filename):
 
 @app.route('/health', methods=['GET'])
 def health_check():
+    db_healthy = db.health_check()
     return jsonify({
         "status": "running",
         "version": "2.0.0",
-        "services": ["BOQ Generator", "Construction Estimator"]
+        "services": ["BOQ Generator", "Construction Estimator"],
+        "database": "connected" if db_healthy else "disconnected"
     })
 
 @app.route('/api/products', methods=['GET'])
@@ -144,7 +157,46 @@ def upload_tender():
 
         # Process tender document
         logger.info("Starting BOQ generation...")
+        import time
+        start_time = time.time()
         result = boq_generator.process(filepath)
+        extraction_time = time.time() - start_time
+
+        # Save to database
+        try:
+            # Get demo user (until we have auth)
+            demo_user = db.get_user_by_email('demo@xboq.ai')
+
+            # Create project
+            project = db.create_project(
+                user_id=demo_user.id,
+                project_type='boq',
+                name=result.get('boq', {}).get('project_name', filename),
+                file_name=filename,
+                file_url=filepath
+            )
+
+            # Update project status
+            db.update_project(project.id, status='complete')
+
+            # Save BOQ data
+            boq_data = result.get('boq', {})
+            boq = db.create_boq(
+                project_id=project.id,
+                project_name=boq_data.get('project_name', 'Unnamed Project'),
+                sections=boq_data.get('sections', []),
+                total_items=boq_data.get('total_items', 0),
+                extraction_time=extraction_time
+            )
+
+            # Add database IDs to response
+            result['project_id'] = project.id
+            result['boq_id'] = boq.id
+
+            logger.info(f"BOQ saved to database: project_id={project.id}, boq_id={boq.id}")
+        except Exception as db_error:
+            logger.error(f"Database save error: {db_error}")
+            # Continue even if DB save fails (for now)
 
         # Clean up
         try:
@@ -178,15 +230,55 @@ def manual_estimate():
             return jsonify({"error": "No input data provided"}), 400
 
         trade = data.get('trade', 'drywall')
+        project_type = data.get('project_type', 'residential')
         logger.info(f"Generating {trade} estimate from manual input")
 
         # Generate estimate based on trade
+        import time
+        start_time = time.time()
         if trade == "drywall":
             result = estimator.generate_drywall_estimate(data)
         elif trade == "painting":
             result = estimator.generate_painting_estimate(data)
         else:
             return jsonify({"error": f"Unsupported trade: {trade}"}), 400
+        calculation_time = time.time() - start_time
+
+        # Save to database
+        try:
+            demo_user = db.get_user_by_email('demo@xboq.ai')
+            estimate_data = result.get('estimate', {})
+
+            # Create project
+            project_name = f"{trade.capitalize()} Estimate - {len(data.get('rooms', []))} room(s)"
+            project = db.create_project(
+                user_id=demo_user.id,
+                project_type='estimate',
+                name=project_name
+            )
+            db.update_project(project.id, status='complete')
+
+            # Save estimate
+            summary = estimate_data.get('summary', {})
+            estimate = db.create_estimate(
+                project_id=project.id,
+                trade=trade,
+                project_type=project_type,
+                rooms=estimate_data.get('rooms', []),
+                summary=summary,
+                total_cost=summary.get('total_cost'),
+                total_sqft=summary.get('total_sqft'),
+                total_labor_hours=summary.get('total_labor_hours'),
+                calculation_time=calculation_time
+            )
+
+            # Add database IDs to response
+            result['project_id'] = project.id
+            result['estimate_id'] = estimate.id
+
+            logger.info(f"Estimate saved to database: project_id={project.id}, estimate_id={estimate.id}")
+        except Exception as db_error:
+            logger.error(f"Database save error: {db_error}")
 
         return jsonify(result), 200
 
@@ -227,7 +319,46 @@ def upload_floor_plan():
 
         # Process floor plan
         logger.info(f"Starting {trade} estimate from floor plan...")
+        import time
+        start_time = time.time()
         result = estimator.process_floor_plan(filepath, trade=trade)
+        calculation_time = time.time() - start_time
+
+        # Save to database
+        try:
+            demo_user = db.get_user_by_email('demo@xboq.ai')
+            estimate_data = result.get('estimate', {})
+
+            # Create project
+            project = db.create_project(
+                user_id=demo_user.id,
+                project_type='estimate',
+                name=f"{trade.capitalize()} - {filename}",
+                file_name=filename,
+                file_url=filepath
+            )
+            db.update_project(project.id, status='complete')
+
+            # Save estimate
+            summary = estimate_data.get('summary', {})
+            estimate = db.create_estimate(
+                project_id=project.id,
+                trade=trade,
+                rooms=estimate_data.get('rooms', []),
+                summary=summary,
+                total_cost=summary.get('total_cost'),
+                total_sqft=summary.get('total_sqft'),
+                total_labor_hours=summary.get('total_labor_hours'),
+                calculation_time=calculation_time
+            )
+
+            # Add database IDs to response
+            result['project_id'] = project.id
+            result['estimate_id'] = estimate.id
+
+            logger.info(f"Floor plan estimate saved: project_id={project.id}, estimate_id={estimate.id}")
+        except Exception as db_error:
+            logger.error(f"Database save error: {db_error}")
 
         # Clean up
         try:
@@ -240,6 +371,123 @@ def upload_floor_plan():
     except Exception as e:
         logger.error(f"Floor Plan Estimate Error: {str(e)}", exc_info=True)
         return jsonify({"error": str(e), "status": "error"}), 500
+
+
+# ============================================================================
+# DATA RETRIEVAL ENDPOINTS
+# ============================================================================
+
+@app.route('/api/projects', methods=['GET'])
+def get_projects():
+    """Get all projects for demo user"""
+    try:
+        demo_user = db.get_user_by_email('demo@xboq.ai')
+        if not demo_user:
+            return jsonify({"error": "User not found"}), 404
+
+        project_type = request.args.get('type')  # 'boq' or 'estimate'
+        limit = int(request.args.get('limit', 50))
+
+        projects = db.get_user_projects(demo_user.id, project_type=project_type, limit=limit)
+
+        return jsonify({
+            "projects": [p.to_dict() for p in projects],
+            "total": len(projects)
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Get projects error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/projects/<int:project_id>', methods=['GET'])
+def get_project(project_id):
+    """Get single project with full details"""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            return jsonify({"error": "Project not found"}), 404
+
+        response = project.to_dict()
+
+        # Include BOQ data if it's a BOQ project
+        if project.type == 'boq':
+            boq = db.get_boq_by_project(project_id)
+            if boq:
+                response['boq'] = boq.to_dict()
+
+        # Include Estimate data if it's an estimate project
+        elif project.type == 'estimate':
+            estimate = db.get_estimate_by_project(project_id)
+            if estimate:
+                response['estimate'] = estimate.to_dict()
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Get project error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    """Delete a project"""
+    try:
+        success = db.delete_project(project_id)
+        if success:
+            return jsonify({"status": "deleted", "project_id": project_id}), 200
+        else:
+            return jsonify({"error": "Project not found"}), 404
+
+    except Exception as e:
+        logger.error(f"Delete project error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/boqs/<int:boq_id>', methods=['GET'])
+def get_boq(boq_id):
+    """Get BOQ by ID"""
+    try:
+        boq = db.get_boq(boq_id)
+        if not boq:
+            return jsonify({"error": "BOQ not found"}), 404
+
+        return jsonify(boq.to_dict()), 200
+
+    except Exception as e:
+        logger.error(f"Get BOQ error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/estimates/<int:estimate_id>', methods=['GET'])
+def get_estimate(estimate_id):
+    """Get estimate by ID"""
+    try:
+        estimate = db.get_estimate(estimate_id)
+        if not estimate:
+            return jsonify({"error": "Estimate not found"}), 404
+
+        return jsonify(estimate.to_dict()), 200
+
+    except Exception as e:
+        logger.error(f"Get estimate error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Get user statistics"""
+    try:
+        demo_user = db.get_user_by_email('demo@xboq.ai')
+        if not demo_user:
+            return jsonify({"error": "User not found"}), 404
+
+        stats = db.get_user_stats(demo_user.id)
+        return jsonify(stats), 200
+
+    except Exception as e:
+        logger.error(f"Get stats error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================================================================
