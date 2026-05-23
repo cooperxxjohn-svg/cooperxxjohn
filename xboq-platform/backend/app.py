@@ -491,6 +491,215 @@ def get_stats():
 
 
 # ============================================================================
+# AUTHENTICATION ENDPOINTS
+# ============================================================================
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """
+    Register a new user
+
+    Request body:
+    {
+        "email": "user@example.com",
+        "password": "SecurePass123",
+        "name": "John Doe"
+    }
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('name')
+
+        # Validation
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+
+        # Import auth utilities
+        from auth import (
+            validate_email_format,
+            validate_password_strength,
+            hash_password,
+            create_auth_response
+        )
+
+        # Validate email format
+        valid_email, email_error = validate_email_format(email)
+        if not valid_email:
+            return jsonify({"error": "Invalid email", "message": email_error}), 400
+
+        # Check if user exists
+        existing_user = db.get_user_by_email(email)
+        if existing_user:
+            return jsonify({"error": "Email already registered"}), 409
+
+        # Validate password strength
+        valid_password, password_error = validate_password_strength(password)
+        if not valid_password:
+            return jsonify({"error": "Weak password", "message": password_error}), 400
+
+        # Hash password
+        password_hash = hash_password(password)
+
+        # Create user
+        user = db.create_user(
+            email=email,
+            name=name or email.split('@')[0],  # Use email prefix if no name
+            password_hash=password_hash
+        )
+
+        logger.info(f"New user registered: {user.email}")
+
+        # Return auth response with tokens
+        response = create_auth_response(user, include_refresh=True)
+        return jsonify(response), 201
+
+    except Exception as e:
+        logger.error(f"Registration error: {e}", exc_info=True)
+        return jsonify({"error": "Registration failed", "message": str(e)}), 500
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """
+    Login with email and password
+
+    Request body:
+    {
+        "email": "user@example.com",
+        "password": "SecurePass123"
+    }
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        email = data.get('email')
+        password = data.get('password')
+
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+
+        # Import auth utilities
+        from auth import verify_password, create_auth_response
+
+        # Find user
+        user = db.get_user_by_email(email)
+        if not user:
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Verify password
+        if not user.password_hash:
+            return jsonify({"error": "Password not set for this user"}), 401
+
+        if not verify_password(password, user.password_hash):
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        logger.info(f"User logged in: {user.email}")
+
+        # Return auth response with tokens
+        response = create_auth_response(user, include_refresh=True)
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Login error: {e}", exc_info=True)
+        return jsonify({"error": "Login failed", "message": str(e)}), 500
+
+
+@app.route('/api/auth/refresh', methods=['POST'])
+def refresh_token():
+    """
+    Refresh access token using refresh token
+
+    Request body:
+    {
+        "refresh_token": "eyJ..."
+    }
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        refresh_token = data.get('refresh_token')
+        if not refresh_token:
+            return jsonify({"error": "Refresh token required"}), 400
+
+        # Import auth utilities
+        from auth import decode_token, create_access_token
+
+        # Decode refresh token
+        payload = decode_token(refresh_token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired refresh token"}), 401
+
+        # Verify token type
+        if payload.get('type') != 'refresh':
+            return jsonify({"error": "Invalid token type"}), 401
+
+        # Get user
+        user_id = payload.get('sub')
+        user = db.get_user(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 401
+
+        # Generate new access token
+        access_token = create_access_token(data={"sub": user.id})
+
+        logger.info(f"Token refreshed for user: {user.email}")
+
+        return jsonify({
+            "access_token": access_token,
+            "token_type": "Bearer",
+            "expires_in": 900  # 15 minutes
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Token refresh error: {e}", exc_info=True)
+        return jsonify({"error": "Token refresh failed"}), 500
+
+
+@app.route('/api/users/me', methods=['GET'])
+def get_current_user():
+    """Get current authenticated user (protected)"""
+    # Import here to avoid circular imports
+    from auth import extract_token_from_header, decode_token
+
+    # Extract token
+    token = extract_token_from_header()
+    if not token:
+        return jsonify({"error": "Missing authorization token"}), 401
+
+    # Decode token
+    payload = decode_token(token)
+    if not payload:
+        return jsonify({"error": "Invalid or expired token"}), 401
+
+    # Get user
+    user_id = payload.get('sub')
+    user = db.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 401
+
+    return jsonify({
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        }
+    }), 200
+
+
+# ============================================================================
 # ANALYTICS & TRACKING (Future)
 # ============================================================================
 
