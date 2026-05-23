@@ -8,6 +8,10 @@ from flask_cors import CORS
 import os
 import logging
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import modules
 from modules.boq_generator import BOQGenerator
@@ -18,7 +22,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+
+# CORS Configuration - Allow both development and production origins
+ALLOWED_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000').split(',')
+CORS(app, resources={r"/*": {
+    "origins": ALLOWED_ORIGINS if os.getenv('FLASK_ENV') == 'production' else "*"
+}})
 
 # Configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')

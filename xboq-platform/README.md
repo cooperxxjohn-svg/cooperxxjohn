@@ -21,7 +21,7 @@ python app.py
 
 Backend runs on: **http://localhost:5000**
 
-### Frontend Setup (Day 2+)
+### Frontend Setup
 
 ```bash
 cd frontend
@@ -30,6 +30,21 @@ npm run dev
 ```
 
 Frontend runs on: **http://localhost:3000**
+
+### Test Mode (No API Key Required)
+
+To test without an Anthropic API key, enable test mode:
+
+```bash
+# In backend/.env
+TEST_MODE=true
+```
+
+Test mode returns mock data for all AI operations, perfect for:
+- UI/UX testing
+- Frontend development
+- Demo purposes
+- CI/CD pipelines
 
 ---
 
@@ -131,12 +146,21 @@ POST /api/estimate/upload   # Upload floor plan
 - [x] Test suite created
 - [x] Documentation complete
 
-### Day 2-7: Frontend Build
-- [ ] React Router setup
-- [ ] Homepage with product selector
-- [ ] BOQ interface (/boq route)
-- [ ] Estimator interface (/estimator route)
-- [ ] Connect to backend API
+### ✅ Day 2: Frontend + Deployment Setup (COMPLETE)
+- [x] React Router setup
+- [x] Homepage with product selector
+- [x] BOQ interface (/boq route)
+- [x] Estimator interface (/estimator route)
+- [x] Connect to backend API
+- [x] Deployment configuration (Render, Railway, Vercel)
+- [x] End-to-end testing (11/11 tests passing)
+- [x] Test mode for development
+
+### Day 3-7: Database & Features
+- [ ] PostgreSQL setup
+- [ ] JWT authentication
+- [ ] Estimator improvements
+- [ ] Additional trades
 
 ### Week 2: Payments & Launch
 - [ ] Stripe integration
@@ -151,6 +175,47 @@ POST /api/estimate/upload   # Upload floor plan
 - [ ] Content marketing
 
 **Goal:** 20+ paying customers, $3K MRR by Day 30
+
+---
+
+## 🧪 Testing
+
+### Automated Test Suite
+
+Run all backend tests:
+
+```bash
+cd backend
+./run_tests.sh
+```
+
+**Test Coverage:**
+- ✅ Health/info endpoints (3 tests)
+- ✅ Manual estimates (2 tests)
+- ✅ File uploads (3 tests)
+- ✅ Error handling (3 tests)
+
+**Results:** 11/11 tests passing ✓
+
+See [TEST_RESULTS.md](TEST_RESULTS.md) for detailed test report.
+
+### Manual Testing
+
+1. **Start Services:**
+```bash
+cd backend && source venv/bin/activate && python app.py &
+cd ../frontend && npm run dev &
+```
+
+2. **Open Browser:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000/health
+
+3. **Test Flows:**
+- Homepage → Choose product
+- BOQ Generator → Upload PDF → View results
+- Estimator → Add rooms → Generate estimate
+- Estimator → Upload floor plan → View results
 
 ---
 
