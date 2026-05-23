@@ -139,6 +139,10 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     """
     to_encode = data.copy()
 
+    # Convert user_id to string (JWT 'sub' claim must be a string)
+    if 'sub' in to_encode and isinstance(to_encode['sub'], int):
+        to_encode['sub'] = str(to_encode['sub'])
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -165,6 +169,11 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
         Encoded JWT token string
     """
     to_encode = data.copy()
+
+    # Convert user_id to string (JWT 'sub' claim must be a string)
+    if 'sub' in to_encode and isinstance(to_encode['sub'], int):
+        to_encode['sub'] = str(to_encode['sub'])
+
     expire = datetime.utcnow() + timedelta(days=JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
     to_encode.update({

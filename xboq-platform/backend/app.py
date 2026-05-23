@@ -130,11 +130,26 @@ def get_trades():
 @app.route('/api/boq/upload', methods=['POST'])
 def upload_tender():
     """
-    Upload tender document and extract BOQ
-    Original XBOQ functionality
+    Upload tender document and extract BOQ (requires authentication)
     """
+    from auth import extract_token_from_header, decode_token
+
+    # Authentication
+    token = extract_token_from_header()
+    if not token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    payload = decode_token(token)
+    if not payload:
+        return jsonify({"error": "Invalid or expired token"}), 401
+
+    user_id = payload.get('sub')
+    current_user = db.get_user(user_id)
+    if not current_user:
+        return jsonify({"error": "User not found"}), 401
+
     try:
-        logger.info("=== BOQ UPLOAD REQUEST ===")
+        logger.info(f"=== BOQ UPLOAD REQUEST from user {current_user.email} ===")
 
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"}), 400
@@ -218,11 +233,27 @@ def upload_tender():
 @app.route('/api/estimate/manual', methods=['POST'])
 def manual_estimate():
     """
-    Generate estimate from manual room input (no file upload)
+    Generate estimate from manual room input (requires authentication)
     New Construction Estimator functionality
     """
+    from auth import extract_token_from_header, decode_token
+
     try:
-        logger.info("=== MANUAL ESTIMATE REQUEST ===")
+        # Authentication
+        token = extract_token_from_header()
+        if not token:
+            return jsonify({"error": "Authentication required", "message": "Please provide a valid JWT token"}), 401
+
+        payload = decode_token(token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired token", "message": "Please login again"}), 401
+
+        user_id = int(payload.get('sub'))  # Convert from string to int
+        current_user = db.get_user(user_id)
+        if not current_user:
+            return jsonify({"error": "User not found"}), 401
+
+        logger.info(f"=== MANUAL ESTIMATE REQUEST from user {current_user.email} ===")
 
         data = request.get_json()
 
@@ -246,13 +277,12 @@ def manual_estimate():
 
         # Save to database
         try:
-            demo_user = db.get_user_by_email('demo@xboq.ai')
             estimate_data = result.get('estimate', {})
 
             # Create project
             project_name = f"{trade.capitalize()} Estimate - {len(data.get('rooms', []))} room(s)"
             project = db.create_project(
-                user_id=demo_user.id,
+                user_id=current_user.id,
                 project_type='estimate',
                 name=project_name
             )
@@ -290,11 +320,27 @@ def manual_estimate():
 @app.route('/api/estimate/upload', methods=['POST'])
 def upload_floor_plan():
     """
-    Upload floor plan and generate estimate
+    Upload floor plan and generate estimate (requires authentication)
     New Construction Estimator functionality
     """
+    from auth import extract_token_from_header, decode_token
+
     try:
-        logger.info("=== FLOOR PLAN UPLOAD REQUEST ===")
+        # Authentication
+        token = extract_token_from_header()
+        if not token:
+            return jsonify({"error": "Authentication required", "message": "Please provide a valid JWT token"}), 401
+
+        payload = decode_token(token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired token", "message": "Please login again"}), 401
+
+        user_id = int(payload.get('sub'))  # Convert from string to int
+        current_user = db.get_user(user_id)
+        if not current_user:
+            return jsonify({"error": "User not found"}), 401
+
+        logger.info(f"=== FLOOR PLAN UPLOAD REQUEST from user {current_user.email} ===")
 
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"}), 400
@@ -326,12 +372,11 @@ def upload_floor_plan():
 
         # Save to database
         try:
-            demo_user = db.get_user_by_email('demo@xboq.ai')
             estimate_data = result.get('estimate', {})
 
             # Create project
             project = db.create_project(
-                user_id=demo_user.id,
+                user_id=current_user.id,
                 project_type='estimate',
                 name=f"{trade.capitalize()} - {filename}",
                 file_name=filename,
@@ -379,16 +424,28 @@ def upload_floor_plan():
 
 @app.route('/api/projects', methods=['GET'])
 def get_projects():
-    """Get all projects for demo user"""
+    """Get all projects for current user (requires authentication)"""
+    from auth import extract_token_from_header, decode_token
+
     try:
-        demo_user = db.get_user_by_email('demo@xboq.ai')
-        if not demo_user:
-            return jsonify({"error": "User not found"}), 404
+        # Authentication
+        token = extract_token_from_header()
+        if not token:
+            return jsonify({"error": "Authentication required", "message": "Please provide a valid JWT token"}), 401
+
+        payload = decode_token(token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired token", "message": "Please login again"}), 401
+
+        user_id = int(payload.get('sub'))  # Convert from string to int
+        current_user = db.get_user(user_id)
+        if not current_user:
+            return jsonify({"error": "User not found"}), 401
 
         project_type = request.args.get('type')  # 'boq' or 'estimate'
         limit = int(request.args.get('limit', 50))
 
-        projects = db.get_user_projects(demo_user.id, project_type=project_type, limit=limit)
+        projects = db.get_user_projects(current_user.id, project_type=project_type, limit=limit)
 
         return jsonify({
             "projects": [p.to_dict() for p in projects],
@@ -402,11 +459,31 @@ def get_projects():
 
 @app.route('/api/projects/<int:project_id>', methods=['GET'])
 def get_project(project_id):
-    """Get single project with full details"""
+    """Get single project with full details (requires authentication and ownership)"""
+    from auth import extract_token_from_header, decode_token
+
     try:
+        # Authentication
+        token = extract_token_from_header()
+        if not token:
+            return jsonify({"error": "Authentication required", "message": "Please provide a valid JWT token"}), 401
+
+        payload = decode_token(token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired token", "message": "Please login again"}), 401
+
+        user_id = int(payload.get('sub'))  # Convert from string to int
+        current_user = db.get_user(user_id)
+        if not current_user:
+            return jsonify({"error": "User not found"}), 401
+
         project = db.get_project(project_id)
         if not project:
             return jsonify({"error": "Project not found"}), 404
+
+        # Verify ownership
+        if project.user_id != current_user.id:
+            return jsonify({"error": "Access denied", "message": "You do not have permission to view this project"}), 403
 
         response = project.to_dict()
 
@@ -431,13 +508,38 @@ def get_project(project_id):
 
 @app.route('/api/projects/<int:project_id>', methods=['DELETE'])
 def delete_project(project_id):
-    """Delete a project"""
+    """Delete a project (requires authentication and ownership)"""
+    from auth import extract_token_from_header, decode_token
+
     try:
+        # Authentication
+        token = extract_token_from_header()
+        if not token:
+            return jsonify({"error": "Authentication required", "message": "Please provide a valid JWT token"}), 401
+
+        payload = decode_token(token)
+        if not payload:
+            return jsonify({"error": "Invalid or expired token", "message": "Please login again"}), 401
+
+        user_id = int(payload.get('sub'))  # Convert from string to int
+        current_user = db.get_user(user_id)
+        if not current_user:
+            return jsonify({"error": "User not found"}), 401
+
+        # Check if project exists and verify ownership
+        project = db.get_project(project_id)
+        if not project:
+            return jsonify({"error": "Project not found"}), 404
+
+        if project.user_id != current_user.id:
+            return jsonify({"error": "Access denied", "message": "You do not have permission to delete this project"}), 403
+
+        # Delete project
         success = db.delete_project(project_id)
         if success:
             return jsonify({"status": "deleted", "project_id": project_id}), 200
         else:
-            return jsonify({"error": "Project not found"}), 404
+            return jsonify({"error": "Failed to delete project"}), 500
 
     except Exception as e:
         logger.error(f"Delete project error: {e}")
