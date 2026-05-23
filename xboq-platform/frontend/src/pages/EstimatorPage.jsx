@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../styles/EstimatorPage.css'
 
+// API Configuration
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 function EstimatorPage() {
   const [trade, setTrade] = useState('drywall')
   const [mode, setMode] = useState('manual')
@@ -70,7 +73,7 @@ function EstimatorPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/estimate/manual', {
+      const response = await fetch(`${API_URL}/api/estimate/manual`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +109,7 @@ function EstimatorPage() {
     formData.append('trade', trade)
 
     try {
-      const response = await fetch('http://localhost:5000/api/estimate/upload', {
+      const response = await fetch(`${API_URL}/api/estimate/upload`, {
         method: 'POST',
         body: formData,
       })

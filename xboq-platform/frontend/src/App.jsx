@@ -3,6 +3,9 @@ import { useState } from 'react'
 import EstimatorPage from './pages/EstimatorPage'
 import './App.css'
 
+// API Configuration
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 // ============================================================================
 // HOMEPAGE - Product Selector
 // ============================================================================
@@ -133,7 +136,7 @@ function BOQPage() {
     formData.append('file', file)
 
     try {
-      const response = await fetch('http://localhost:5000/api/boq/upload', {
+      const response = await fetch(`${API_URL}/api/boq/upload`, {
         method: 'POST',
         body: formData,
       })
