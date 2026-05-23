@@ -1,0 +1,574 @@
+/* ============================================================================
+   ESTIMATOR PAGE STYLES
+   ============================================================================ */
+
+.estimator-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding-bottom: 60px;
+}
+
+.tool-nav {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.back-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: opacity 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.back-link:hover {
+  opacity: 0.8;
+}
+
+.tool-nav h1 {
+  color: white;
+  font-size: 2rem;
+  margin: 0;
+}
+
+/* ============================================================================
+   MAIN CONTAINER
+   ============================================================================ */
+
+.estimator-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ============================================================================
+   TRADE SELECTOR
+   ============================================================================ */
+
+.trade-selector {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.trade-selector label {
+  font-weight: 700;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.trade-selector select {
+  flex: 1;
+  max-width: 350px;
+  padding: 14px 18px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: white;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.trade-selector select:hover {
+  border-color: #667eea;
+}
+
+.trade-selector select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ============================================================================
+   MODE TOGGLE
+   ============================================================================ */
+
+.mode-toggle {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  background: white;
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.mode-toggle button {
+  flex: 1;
+  padding: 16px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mode-toggle button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mode-toggle button:hover:not(.active) {
+  background: #f5f5f5;
+  color: #333;
+}
+
+/* ============================================================================
+   MANUAL MODE
+   ============================================================================ */
+
+.manual-mode,
+.upload-mode {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  margin-bottom: 30px;
+}
+
+.manual-mode h2,
+.upload-mode h2 {
+  color: #333;
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.mode-description {
+  color: #666;
+  margin-bottom: 30px;
+  font-size: 1.05rem;
+}
+
+/* Room Cards */
+.room-card {
+  background: #f9f9f9;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 20px;
+  transition: border-color 0.3s;
+}
+
+.room-card:hover {
+  border-color: #667eea;
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.room-name-input {
+  flex: 1;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 10px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: border-color 0.3s;
+}
+
+.room-name-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.remove-room-btn {
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-room-btn:hover {
+  background: #cc0000;
+  transform: scale(1.1);
+}
+
+/* Room Inputs Grid */
+.room-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 18px;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.input-group input {
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Room Summary */
+.room-summary {
+  padding: 12px;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #666;
+  border-left: 3px solid #667eea;
+}
+
+/* Buttons */
+.add-room-btn {
+  width: 100%;
+  padding: 16px;
+  background: white;
+  border: 2px dashed #667eea;
+  border-radius: 10px;
+  color: #667eea;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  margin-bottom: 25px;
+  transition: all 0.3s;
+}
+
+.add-room-btn:hover {
+  background: #f0f4ff;
+  border-style: solid;
+}
+
+.generate-btn {
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.3s;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+}
+
+.generate-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+}
+
+.generate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================================================
+   UPLOAD MODE
+   ============================================================================ */
+
+.upload-section input[type="file"] {
+  width: 100%;
+  padding: 20px;
+  border: 3px dashed #ddd;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.upload-section input[type="file"]:hover {
+  border-color: #667eea;
+  background: #f9f9ff;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.file-icon {
+  font-size: 1.5rem;
+}
+
+.file-name {
+  flex: 1;
+  font-weight: 600;
+  color: #333;
+}
+
+.file-size {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* ============================================================================
+   ERROR & RESULTS
+   ============================================================================ */
+
+.error-box {
+  background: #fee;
+  color: #c33;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border-left: 5px solid #c33;
+  font-weight: 500;
+}
+
+.results-section {
+  margin-top: 40px;
+}
+
+.results-title {
+  color: white;
+  font-size: 2rem;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+/* Result Cards */
+.result-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.result-card h3 {
+  color: #333;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Summary Grid */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.summary-item {
+  padding: 18px;
+  background: #f9f9f9;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.summary-item .label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.summary-item .value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Materials & Labor Grids */
+.materials-grid,
+.labor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.material-item,
+.labor-item {
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.material-item .label,
+.labor-item .label {
+  font-weight: 600;
+  color: #555;
+}
+
+.material-item .value,
+.labor-item .value {
+  font-weight: 700;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+/* Costs Card */
+.costs-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.costs-card h3 {
+  color: white;
+}
+
+.costs-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cost-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+}
+
+.cost-row.total-row {
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 1.3rem;
+  font-weight: 700;
+  border: 2px solid white;
+  padding: 18px;
+}
+
+.cost-row .value {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.cost-row.total-row .value {
+  font-size: 1.5rem;
+}
+
+/* Raw JSON Toggle */
+.raw-json-toggle {
+  margin-top: 30px;
+  cursor: pointer;
+}
+
+.raw-json-toggle summary {
+  font-weight: 700;
+  color: white;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.raw-json-toggle summary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.json-display {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 25px;
+  border-radius: 10px;
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  margin-top: 15px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .tool-nav {
+    padding: 15px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .tool-nav h1 {
+    font-size: 1.5rem;
+  }
+
+  .trade-selector {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .trade-selector select {
+    max-width: none;
+  }
+
+  .manual-mode,
+  .upload-mode {
+    padding: 25px 20px;
+  }
+
+  .room-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid,
+  .materials-grid,
+  .labor-grid {
+    grid-template-columns: 1fr;
+  }
+}

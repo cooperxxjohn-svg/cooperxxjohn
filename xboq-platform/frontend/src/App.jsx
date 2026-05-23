@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import EstimatorPage from './pages/EstimatorPage'
 import './App.css'
 
 // ============================================================================
@@ -109,7 +110,7 @@ function HomePage() {
 }
 
 // ============================================================================
-// BOQ PAGE - Placeholder
+// BOQ PAGE
 // ============================================================================
 
 function BOQPage() {
@@ -188,61 +189,6 @@ function BOQPage() {
             <pre>{JSON.stringify(result.boq, null, 2)}</pre>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-// ============================================================================
-// ESTIMATOR PAGE - Placeholder
-// ============================================================================
-
-function EstimatorPage() {
-  const [trade, setTrade] = useState('drywall')
-  const [mode, setMode] = useState('manual')
-
-  return (
-    <div className="tool-page">
-      <nav className="tool-nav">
-        <Link to="/" className="back-link">← Back to Home</Link>
-        <h1>🏗️ Construction Estimator</h1>
-      </nav>
-
-      <div className="tool-container">
-        <div className="trade-selector">
-          <label>Select Trade:</label>
-          <select value={trade} onChange={(e) => setTrade(e.target.value)}>
-            <option value="drywall">Drywall</option>
-            <option value="painting">Painting</option>
-            <option value="concrete" disabled>Concrete (Coming Soon)</option>
-          </select>
-        </div>
-
-        <div className="mode-toggle">
-          <button
-            className={mode === 'manual' ? 'active' : ''}
-            onClick={() => setMode('manual')}
-          >
-            Manual Input
-          </button>
-          <button
-            className={mode === 'upload' ? 'active' : ''}
-            onClick={() => setMode('upload')}
-          >
-            Upload Floor Plan
-          </button>
-        </div>
-
-        <div className="placeholder-message">
-          <h3>🚧 Estimator Interface Coming in Day 2</h3>
-          <p>The estimator will have:</p>
-          <ul>
-            <li>Manual room input with dimensions</li>
-            <li>Floor plan PDF upload</li>
-            <li>Real-time estimate generation</li>
-            <li>Detailed material and labor breakdown</li>
-          </ul>
-        </div>
       </div>
     </div>
   )
