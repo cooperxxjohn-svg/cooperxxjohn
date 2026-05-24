@@ -25,6 +25,7 @@ from boq_estimator import BOQEstimator
 from boq_schema import ContractDetails, BOQDocument
 from boq_validator import CPWDValidator
 from config import BOQConfig, default_config
+from takeoff_pipeline import TakeoffPipeline
 
 # Setup logging
 logging.basicConfig(
@@ -100,6 +101,7 @@ class ValidationResponse(BaseModel):
 # Initialize estimator
 config = BOQConfig()
 estimator = None
+takeoff_pipeline = None
 
 try:
     api_key = config.get_api_key()
@@ -109,7 +111,8 @@ try:
             dsr_rates=config.get_all_rates(),
             enable_logging=True
         )
-        logger.info("✓ BOQ Estimator initialized successfully")
+        takeoff_pipeline = TakeoffPipeline(api_key=api_key)
+        logger.info("✓ BOQ Estimator and Takeoff Pipeline initialized successfully")
     else:
         logger.warning("⚠ ANTHROPIC_API_KEY not set. Drawing extraction will not work.")
 except Exception as e:
@@ -127,9 +130,10 @@ async def root():
         "status": "operational",
         "estimator_ready": estimator is not None,
         "endpoints": {
-            "POST /estimate": "Create new BOQ estimation job",
+            "POST /takeoff": "Construction takeoff from drawings (multi-trade, US units)",
+            "POST /estimate": "BOQ estimation (India CPWD DSR rates)",
             "GET /status/{job_id}": "Get job status",
-            "GET /download/{job_id}": "Download BOQ files",
+            "GET /download/{job_id}": "Download result files",
             "POST /validate": "Validate BOQ document",
             "GET /rates": "Get current DSR rates",
             "POST /rates": "Update rates"
@@ -400,6 +404,125 @@ async def update_rates(rate_updates: Dict[str, float]):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/takeoff", response_model=EstimationResponse)
+async def create_takeoff(
+    background_tasks: BackgroundTasks,
+    drawings: List[UploadFile] = File(...),
+    project_name: str = Form("Unnamed Project"),
+    page_limit: Optional[int] = Form(None),
+):
+    """
+    Construction takeoff endpoint.
+    Accepts PDF drawings and returns a structured quantity takeoff with line items.
+    """
+    if not takeoff_pipeline:
+        raise HTTPException(
+            status_code=503,
+            detail="Takeoff pipeline not initialized. Check ANTHROPIC_API_KEY."
+        )
+
+    job_id = str(uuid.uuid4())
+    job_dir = TEMP_DIR / job_id
+    job_dir.mkdir(exist_ok=True)
+
+    drawing_paths = []
+    for drawing in drawings:
+        if not drawing.filename.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg')):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {drawing.filename}"
+            )
+        file_path = job_dir / drawing.filename
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(drawing.file, f)
+        drawing_paths.append(str(file_path))
+
+    job_storage[job_id] = {
+        "status": "pending",
+        "progress": 0,
+        "created_at": datetime.now().isoformat(),
+        "drawing_count": len(drawing_paths),
+        "project_name": project_name,
+        "job_type": "takeoff",
+    }
+
+    background_tasks.add_task(
+        _run_takeoff_job,
+        job_id=job_id,
+        drawing_paths=drawing_paths,
+        project_name=project_name,
+        page_limit=page_limit,
+    )
+
+    return EstimationResponse(
+        job_id=job_id,
+        status="pending",
+        message=f"Takeoff job created. Processing {len(drawing_paths)} file(s).",
+    )
+
+
+async def _run_takeoff_job(
+    job_id: str,
+    drawing_paths: List[str],
+    project_name: str,
+    page_limit: Optional[int],
+):
+    output_dir = OUTPUT_DIR / job_id
+    output_dir.mkdir(exist_ok=True)
+
+    try:
+        job_storage[job_id]["status"] = "processing"
+        job_storage[job_id]["progress"] = 10
+
+        from pathlib import Path as _Path
+        results = []
+        for path in drawing_paths:
+            p = _Path(path)
+            if p.suffix.lower() == ".pdf":
+                r = takeoff_pipeline.process_pdf(p, project_name=project_name, page_limit=page_limit)
+            else:
+                r = takeoff_pipeline.process_images([p], project_name=project_name)
+            results.append(r)
+
+        job_storage[job_id]["progress"] = 80
+
+        # Merge results if multiple files
+        final = results[0] if len(results) == 1 else _merge_takeoff_results(results)
+
+        out_path = takeoff_pipeline.save_result(final, output_dir, "takeoff_result.json")
+
+        job_storage[job_id]["status"] = "completed"
+        job_storage[job_id]["progress"] = 100
+        job_storage[job_id]["completed_at"] = datetime.now().isoformat()
+        job_storage[job_id]["result"] = {
+            "job_id": final.job_id,
+            "project_name": final.project_name,
+            "sheets_processed": final.sheets_processed,
+            "total_line_items": len(final.line_items),
+            "elements_by_trade": final.elements_by_trade,
+            "total_cost_estimate": final.total_cost_estimate,
+            "confidence_avg": final.confidence_avg,
+            "output_file": str(out_path),
+        }
+        logger.info("Takeoff job %s completed", job_id)
+
+    except Exception as e:
+        logger.error("Takeoff job %s failed: %s", job_id, e)
+        job_storage[job_id]["status"] = "failed"
+        job_storage[job_id]["error"] = str(e)
+
+
+def _merge_takeoff_results(results):
+    """Simple merge: concatenate sheet results and re-aggregate."""
+    from takeoff_schema import TakeoffResult
+    merged = TakeoffResult(project_name=results[0].project_name)
+    for r in results:
+        merged.sheet_results.extend(r.sheet_results)
+        merged.line_items.extend(r.line_items)
+    merged.summarize()
+    return merged
 
 
 @app.delete("/jobs/{job_id}")

@@ -1,0 +1,123 @@
+# Assembly rules — Interior & exterior finishes
+
+flooring_tile:
+  trade: flooring
+  items:
+    - code: DIV09-3000
+      description: "Ceramic / Porcelain Tile Flooring - Supply & Install"
+      unit: SF
+      formula: "area_sf or 0"
+
+    - code: DIV09-3010
+      description: "Tile Setting Bed & Grout"
+      unit: SF
+      formula: "area_sf or 0"
+
+flooring_vct:
+  trade: flooring
+  items:
+    - code: DIV09-6516
+      description: "Vinyl Composition Tile (VCT) - Supply & Install"
+      unit: SF
+      formula: "area_sf or 0"
+
+flooring_carpet:
+  trade: flooring
+  items:
+    - code: DIV09-6800
+      description: "Carpet & Pad - Supply & Install"
+      unit: SY
+      formula: "(area_sf or 0) / 9"
+
+flooring_hardwood:
+  trade: flooring
+  items:
+    - code: DIV09-6400
+      description: "Hardwood Flooring - 3/4\" Solid Oak - Supply & Install"
+      unit: SF
+      formula: "area_sf or 0"
+
+flooring_epoxy:
+  trade: flooring
+  items:
+    - code: DIV09-6723
+      description: "Epoxy Floor Coating - 2-Part, 10mil"
+      unit: SF
+      formula: "area_sf or 0"
+
+ceiling_acoustical:
+  trade: finishes
+  items:
+    - code: DIV09-5100
+      description: "Acoustical Ceiling Tile (ACT) 2x2 - Grid & Tile"
+      unit: SF
+      formula: "area_sf or 0"
+
+ceiling_gypsum:
+  trade: finishes
+  items:
+    - code: DIV09-2960
+      description: "Gypsum Wallboard Ceiling 5/8\" - Framing, Board, Tape & Finish"
+      unit: SF
+      formula: "area_sf or 0"
+
+painting_interior:
+  trade: finishes
+  items:
+    - code: DIV09-9100
+      description: "Interior Painting - Walls, 2 Coats Latex"
+      unit: SF
+      formula: "area_sf or 0"
+
+painting_exterior:
+  trade: finishes
+  items:
+    - code: DIV09-9110
+      description: "Exterior Painting - 2 Coats Elastomeric"
+      unit: SF
+      formula: "area_sf or 0"
+
+base_molding:
+  trade: finishes
+  items:
+    - code: DIV09-2985
+      description: "Base Molding / Vinyl Base 4\""
+      unit: LF
+      formula: "length_ft or 0"
+
+casework:
+  trade: finishes
+  items:
+    - code: DIV12-3600
+      description: "Casework - Base & Wall Cabinets"
+      unit: LF
+      formula: "length_ft or 0"
+
+countertop:
+  trade: finishes
+  items:
+    - code: DIV12-3610
+      description: "Countertop - Solid Surface or Laminate"
+      unit: LF
+      formula: "length_ft or 0"
+
+partition_toilet:
+  trade: finishes
+  items:
+    - code: DIV10-2113
+      description: "Toilet Partition - Powder Coated Steel"
+      unit: EA
+      formula: "count"
+
+    - code: DIV10-2114
+      description: "Pilaster & Hardware for Toilet Partition"
+      unit: EA
+      formula: "count"
+
+signage:
+  trade: misc
+  items:
+    - code: DIV10-1400
+      description: "Interior Signage - Accessibility & Room ID"
+      unit: EA
+      formula: "count"

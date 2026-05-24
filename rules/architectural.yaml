@@ -1,0 +1,135 @@
+# Assembly rules — Architectural elements
+# Each key matches an element_type returned by the VLM extractor.
+# formula fields use Python expressions evaluated with element attributes
+# available: count, length_ft, width_ft, height_ft, area_sf, volume_cf
+# missing dimensions fall back to the default_* values listed here.
+
+door:
+  trade: doors_windows
+  items:
+    - code: DIV08-1000
+      description: "Door - Hollow Metal, Supply & Install"
+      unit: EA
+      formula: "count"
+
+    - code: DIV08-1100
+      description: "Door Frame - Hollow Metal"
+      unit: EA
+      formula: "count"
+
+    - code: DIV08-7100
+      description: "Door Hardware Set - Commercial Grade"
+      unit: SET
+      formula: "count"
+
+door_double:
+  trade: doors_windows
+  items:
+    - code: DIV08-1010
+      description: "Double Door - Hollow Metal, Supply & Install"
+      unit: EA
+      formula: "count"
+
+    - code: DIV08-1110
+      description: "Door Frame - Double - Hollow Metal"
+      unit: EA
+      formula: "count"
+
+    - code: DIV08-7110
+      description: "Door Hardware Set - Double Door"
+      unit: SET
+      formula: "count"
+
+door_overhead:
+  trade: doors_windows
+  items:
+    - code: DIV08-3300
+      description: "Overhead Coiling Door - Supply & Install"
+      unit: EA
+      formula: "count"
+
+window:
+  trade: doors_windows
+  items:
+    - code: DIV08-5100
+      description: "Window Unit - Aluminum Frame, Double Pane"
+      unit: EA
+      formula: "count"
+
+    - code: DIV08-5110
+      description: "Window Sill - Stone/Marble"
+      unit: LF
+      formula: "(width_ft or 3.0) * count"
+
+wall_exterior:
+  trade: framing
+  items:
+    - code: DIV06-1100
+      description: "Wood Framing - 2x6 @ 16\" OC Exterior Wall"
+      unit: LF
+      formula: "length_ft or 0"
+
+    - code: DIV07-2100
+      description: "Batt Insulation - R-19"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 9.0)"
+
+    - code: DIV09-2910
+      description: "Gypsum Wallboard 5/8\" Type X - Two Sides"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 9.0) * 2"
+
+wall_interior:
+  trade: framing
+  items:
+    - code: DIV06-1200
+      description: "Wood Framing - 2x4 @ 16\" OC Interior Partition"
+      unit: LF
+      formula: "length_ft or 0"
+
+    - code: DIV09-2900
+      description: "Gypsum Wallboard 1/2\" - Two Sides"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 9.0) * 2"
+
+wall_masonry:
+  trade: masonry
+  items:
+    - code: DIV04-2100
+      description: "Concrete Masonry Unit (CMU) 8\" Block Wall"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 9.0)"
+
+    - code: DIV04-2200
+      description: "Mortar & Grout for CMU"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 9.0)"
+
+room:
+  trade: finishes
+  items:
+    - code: DIV09-6500
+      description: "Flooring - Assume VCT or Carpet (verify finish schedule)"
+      unit: SF
+      formula: "area_sf or 0"
+
+    - code: DIV09-9100
+      description: "Painting - Interior Walls"
+      unit: SF
+      formula: "(area_sf or 0) * 0.4"   # rough wall SF estimate from floor SF
+
+stair:
+  trade: concrete
+  items:
+    - code: DIV03-5100
+      description: "Stair - CIP Concrete, Include Landings"
+      unit: LS
+      formula: "count"
+
+opening:
+  trade: misc
+  items:
+    - code: DIV08-1900
+      description: "Miscellaneous Opening / Pass-through"
+      unit: EA
+      formula: "count"

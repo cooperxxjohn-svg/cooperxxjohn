@@ -1,0 +1,168 @@
+# Assembly rules — Structural elements
+# All concrete volumes use cubic yards (CY = CF / 27).
+# Default dimensions are conservative estimates when not extracted from drawing.
+
+concrete_slab:
+  trade: concrete
+  items:
+    - code: DIV03-3000
+      description: "CIP Concrete Slab 4\" thick - Place & Finish"
+      unit: CY
+      formula: "(area_sf or 0) * (4/12) / 27"
+
+    - code: DIV03-2000
+      description: "Reinforcing Steel #4 @ 12\" EW in Slab"
+      unit: TON
+      formula: "(area_sf or 0) * 0.5 / 2000"
+
+    - code: DIV03-1500
+      description: "Formwork - Slab Edge"
+      unit: LF
+      formula: "((area_sf or 0) ** 0.5) * 4"  # perimeter estimate from area
+
+    - code: DIV03-3900
+      description: "Vapor Barrier - Polyethylene Under Slab"
+      unit: SF
+      formula: "area_sf or 0"
+
+concrete_slab_elevated:
+  trade: concrete
+  items:
+    - code: DIV03-3100
+      description: "CIP Concrete Elevated Slab 6\" thick"
+      unit: CY
+      formula: "(area_sf or 0) * (6/12) / 27"
+
+    - code: DIV03-2100
+      description: "Reinforcing Steel #5 @ 12\" EW - Elevated Slab"
+      unit: TON
+      formula: "(area_sf or 0) * 0.75 / 2000"
+
+    - code: DIV03-1520
+      description: "Formwork - Elevated Slab Soffit (Shoring)"
+      unit: SF
+      formula: "area_sf or 0"
+
+column_concrete:
+  trade: concrete
+  items:
+    - code: DIV03-4000
+      description: "CIP Concrete Column"
+      unit: CY
+      formula: "count * (height_ft or 12.0) * (width_ft or 1.5) * (length_ft or 1.5) / 27"
+
+    - code: DIV03-1600
+      description: "Formwork - Square Column"
+      unit: SF
+      formula: "count * (height_ft or 12.0) * ((width_ft or 1.5) + (length_ft or 1.5)) * 2"
+
+    - code: DIV03-2200
+      description: "Reinforcing Steel - Column Bars & Ties"
+      unit: LB
+      formula: "count * (height_ft or 12.0) * 35"  # ~35 lb/LF typical column
+
+beam_concrete:
+  trade: concrete
+  items:
+    - code: DIV03-3500
+      description: "CIP Concrete Beam"
+      unit: CY
+      formula: "count * (length_ft or 20.0) * (width_ft or 1.0) * (height_ft or 1.5) / 27"
+
+    - code: DIV03-1700
+      description: "Formwork - Beam Sides & Soffit"
+      unit: SF
+      formula: "count * (length_ft or 20.0) * ((width_ft or 1.0) + (height_ft or 1.5) * 2)"
+
+    - code: DIV03-2300
+      description: "Reinforcing Steel - Beam"
+      unit: LB
+      formula: "count * (length_ft or 20.0) * 25"  # ~25 lb/LF
+
+footing_spread:
+  trade: concrete
+  items:
+    - code: DIV03-1000
+      description: "CIP Concrete Spread Footing"
+      unit: CY
+      formula: "count * (width_ft or 4.0) * (length_ft or 4.0) * (height_ft or 1.5) / 27"
+
+    - code: DIV03-1050
+      description: "Formwork - Spread Footing"
+      unit: SF
+      formula: "count * ((width_ft or 4.0) + (length_ft or 4.0)) * 2 * (height_ft or 1.5)"
+
+    - code: DIV31-2300
+      description: "Excavation - Spread Footing"
+      unit: CY
+      formula: "count * ((width_ft or 4.0) + 2) * ((length_ft or 4.0) + 2) * (height_ft or 3.0) / 27"
+
+footing_continuous:
+  trade: concrete
+  items:
+    - code: DIV03-1100
+      description: "CIP Concrete Continuous Wall Footing"
+      unit: CY
+      formula: "(length_ft or 0) * (width_ft or 2.0) * (height_ft or 1.0) / 27"
+
+    - code: DIV03-1150
+      description: "Formwork - Continuous Footing Sides"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 1.0) * 2"
+
+wall_concrete:
+  trade: concrete
+  items:
+    - code: DIV03-4500
+      description: "CIP Concrete Foundation Wall 12\" thick"
+      unit: CY
+      formula: "(length_ft or 0) * (height_ft or 8.0) * (width_ft or 1.0) / 27"
+
+    - code: DIV03-1800
+      description: "Formwork - Wall Two Sides"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 8.0) * 2"
+
+shear_wall:
+  trade: concrete
+  items:
+    - code: DIV03-4600
+      description: "CIP Concrete Shear Wall 12\" thick"
+      unit: CY
+      formula: "(length_ft or 0) * (height_ft or 12.0) * 1.0 / 27"
+
+    - code: DIV03-2400
+      description: "Reinforcing Steel - Shear Wall (Heavy)"
+      unit: TON
+      formula: "(length_ft or 0) * (height_ft or 12.0) * 5 / 2000"  # ~5 lb/SF
+
+    - code: DIV03-1810
+      description: "Formwork - Shear Wall Two Sides"
+      unit: SF
+      formula: "(length_ft or 0) * (height_ft or 12.0) * 2"
+
+steel_column:
+  trade: framing
+  items:
+    - code: DIV05-1210
+      description: "Structural Steel Column - W-Shape"
+      unit: TON
+      formula: "count * (height_ft or 14.0) * 0.035"  # ~70 lb/LF W8x35 typical
+
+    - code: DIV05-1250
+      description: "Base Plate & Anchor Bolts"
+      unit: EA
+      formula: "count"
+
+steel_beam:
+  trade: framing
+  items:
+    - code: DIV05-1220
+      description: "Structural Steel Beam - W-Shape"
+      unit: TON
+      formula: "count * (length_ft or 24.0) * 0.025"  # ~50 lb/LF W16x50 typical
+
+    - code: DIV05-1260
+      description: "Beam Connection - Shear Tab"
+      unit: EA
+      formula: "count * 2"  # two ends

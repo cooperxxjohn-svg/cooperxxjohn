@@ -1,0 +1,221 @@
+# Assembly rules — MEP (Mechanical, Electrical, Plumbing)
+
+# ── MECHANICAL ──────────────────────────────────────────────────────────────
+
+ahu:
+  trade: hvac
+  items:
+    - code: DIV23-7300
+      description: "Air Handling Unit - Supply & Install"
+      unit: EA
+      formula: "count"
+
+    - code: DIV23-3100
+      description: "Supply Ductwork - Main Trunk (estimated)"
+      unit: LF
+      formula: "count * 40"  # ~40 LF per AHU rough estimate
+
+vav_box:
+  trade: hvac
+  items:
+    - code: DIV23-3600
+      description: "VAV Terminal Box - Supply & Install"
+      unit: EA
+      formula: "count"
+
+diffuser:
+  trade: hvac
+  items:
+    - code: DIV23-3700
+      description: "Supply Air Diffuser - 24x24"
+      unit: EA
+      formula: "count"
+
+exhaust_fan:
+  trade: hvac
+  items:
+    - code: DIV23-3400
+      description: "Exhaust Fan - Ceiling/Wall Mount"
+      unit: EA
+      formula: "count"
+
+ductwork:
+  trade: hvac
+  items:
+    - code: DIV23-3100
+      description: "Rectangular Sheet Metal Ductwork"
+      unit: LF
+      formula: "length_ft or 0"
+
+    - code: DIV23-3300
+      description: "Duct Insulation - 2\" Fiberglass Wrap"
+      unit: LF
+      formula: "length_ft or 0"
+
+chiller:
+  trade: hvac
+  items:
+    - code: DIV23-6400
+      description: "Centrifugal Chiller - Supply & Install"
+      unit: EA
+      formula: "count"
+
+cooling_tower:
+  trade: hvac
+  items:
+    - code: DIV23-6500
+      description: "Cooling Tower - Supply & Install"
+      unit: EA
+      formula: "count"
+
+# ── PLUMBING ─────────────────────────────────────────────────────────────────
+
+toilet:
+  trade: plumbing
+  items:
+    - code: DIV22-4213
+      description: "Water Closet (Toilet) - Floor Mount, Vitreous China"
+      unit: EA
+      formula: "count"
+
+    - code: DIV22-4213-R
+      description: "Rough-In - Supply & Waste for WC"
+      unit: EA
+      formula: "count"
+
+lavatory:
+  trade: plumbing
+  items:
+    - code: DIV22-4216
+      description: "Lavatory (Sink) - Wall Hung"
+      unit: EA
+      formula: "count"
+
+    - code: DIV22-4216-R
+      description: "Rough-In - Supply & Waste for Lav"
+      unit: EA
+      formula: "count"
+
+urinal:
+  trade: plumbing
+  items:
+    - code: DIV22-4217
+      description: "Urinal - Wall Hung, Sensor Flush"
+      unit: EA
+      formula: "count"
+
+floor_drain:
+  trade: plumbing
+  items:
+    - code: DIV22-1318
+      description: "Floor Drain - Cast Iron, 4\" NPS"
+      unit: EA
+      formula: "count"
+
+water_heater:
+  trade: plumbing
+  items:
+    - code: DIV22-3400
+      description: "Water Heater - Electric/Gas"
+      unit: EA
+      formula: "count"
+
+piping_domestic:
+  trade: plumbing
+  items:
+    - code: DIV22-1116
+      description: "Domestic Water Piping - Copper Type L"
+      unit: LF
+      formula: "length_ft or 0"
+
+kitchen_sink:
+  trade: plumbing
+  items:
+    - code: DIV22-4219
+      description: "Stainless Steel Kitchen Sink - Double Bowl"
+      unit: EA
+      formula: "count"
+
+    - code: DIV22-4219-R
+      description: "Rough-In - Supply & Waste for Kitchen Sink"
+      unit: EA
+      formula: "count"
+
+# ── ELECTRICAL ───────────────────────────────────────────────────────────────
+
+panel_electrical:
+  trade: electrical
+  items:
+    - code: DIV26-2413
+      description: "Panelboard - 120/208V 3-Phase 42-Circuit"
+      unit: EA
+      formula: "count"
+
+    - code: DIV26-0519
+      description: "Conduit & Wire to Panel (estimated)"
+      unit: LS
+      formula: "count"
+
+transformer:
+  trade: electrical
+  items:
+    - code: DIV26-2200
+      description: "Dry-Type Transformer"
+      unit: EA
+      formula: "count"
+
+outlet_duplex:
+  trade: electrical
+  items:
+    - code: DIV26-5100
+      description: "Duplex Receptacle - 20A"
+      unit: EA
+      formula: "count"
+
+outlet_gfci:
+  trade: electrical
+  items:
+    - code: DIV26-5110
+      description: "GFCI Receptacle - 20A"
+      unit: EA
+      formula: "count"
+
+light_fixture:
+  trade: electrical
+  items:
+    - code: DIV26-5130
+      description: "Lighting Fixture - LED Troffer 2x4"
+      unit: EA
+      formula: "count"
+
+switch:
+  trade: electrical
+  items:
+    - code: DIV26-5120
+      description: "Wall Switch - Single Pole"
+      unit: EA
+      formula: "count"
+
+conduit:
+  trade: electrical
+  items:
+    - code: DIV26-0533
+      description: "EMT Conduit 3/4\""
+      unit: LF
+      formula: "length_ft or 0"
+
+generator:
+  trade: electrical
+  items:
+    - code: DIV26-3213
+      description: "Emergency Generator - Diesel"
+      unit: EA
+      formula: "count"
+
+fire_alarm_device:
+  trade: electrical
+  items:
+    - code: DIV28-3100
+      description: "Fire Alarm Device (Smoke Detector / Pull Station)"
+      unit: EA
+      formula: "count"

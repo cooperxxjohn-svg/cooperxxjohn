@@ -1,21 +1,37 @@
-# Core dependencies
+# Core
 anthropic>=0.39.0
 pydantic>=2.0.0
-PyPDF2>=3.0.0
-pdf2image>=1.16.0
 Pillow>=10.0.0
 
-# Optional dependencies for enhanced functionality
-openpyxl>=3.1.0  # For Excel export
-python-dotenv>=1.0.0  # For environment variable management
+# PDF handling
+PyPDF2>=3.0.0
+pdf2image>=1.16.0
 
-# API Server dependencies (optional - only if running API)
+# Assembly rules
+pyyaml>=6.0.0
+
+# Image processing (Phase 0/1 — OpenCV for preprocessing)
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+
+# Excel / data export
+openpyxl>=3.1.0
+pandas>=2.0.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# API Server
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
-python-multipart>=0.0.6  # For file uploads
+python-multipart>=0.0.6
+
+# Phase 2 additions (uncomment when ready):
+# ultralytics>=8.2.0          # YOLOv8/v11 symbol detection
+# paddlepaddle>=2.6.0         # PaddleOCR backend
+# paddleocr>=2.7.0            # OCR for dimension strings
 
 # System dependencies (install via system package manager):
-# - poppler-utils (for pdf2image)
-#   Ubuntu/Debian: sudo apt-get install poppler-utils
+#   Ubuntu/Debian: sudo apt-get install poppler-utils libgl1
 #   macOS: brew install poppler
-#   Windows: Download from https://github.com/oschwartz10612/poppler-windows/releases/
+#   Windows: https://github.com/oschwartz10612/poppler-windows/releases/
