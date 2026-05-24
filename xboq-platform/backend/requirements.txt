@@ -32,3 +32,10 @@ email-validator==2.1.0
 pytest==7.4.3
 pytest-cov==4.1.0
 reportlab==4.0.7
+
+# Computer Vision & Precise Measurements
+opencv-python==4.8.1.78
+numpy==1.24.3
+scipy==1.11.4
+keras-ocr==0.9.3
+shapely==2.0.2
