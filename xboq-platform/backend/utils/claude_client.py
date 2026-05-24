@@ -69,6 +69,118 @@ class ClaudeClient:
             logger.error(f"Error calling Claude API: {e}")
             raise
 
+    def analyze_image(self, image_path: str, prompt: str, max_tokens: int = 3000) -> str:
+        """
+        Analyze an image with Claude's vision capability
+
+        Args:
+            image_path: Path to image file
+            prompt: The prompt/question about the image
+            max_tokens: Maximum tokens in response
+
+        Returns:
+            str: Claude's response text
+        """
+        if self.test_mode:
+            logger.info("🧪 TEST MODE: Returning mock floor plan data")
+            return self._get_mock_floor_plan_response()
+
+        logger.info(f"Analyzing image with Claude: {image_path}")
+
+        try:
+            import base64
+
+            # Read and encode image
+            with open(image_path, 'rb') as image_file:
+                image_data = base64.standard_b64encode(image_file.read()).decode('utf-8')
+
+            # Determine image type
+            if image_path.lower().endswith('.png'):
+                media_type = "image/png"
+            elif image_path.lower().endswith(('.jpg', '.jpeg')):
+                media_type = "image/jpeg"
+            else:
+                media_type = "image/png"  # Default
+
+            # Create message with image
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": image_data
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt
+                            }
+                        ]
+                    }
+                ]
+            )
+
+            response_text = response.content[0].text
+            logger.info(f"Received image analysis from Claude ({len(response_text)} characters)")
+
+            return response_text
+
+        except Exception as e:
+            logger.error(f"Error analyzing image with Claude: {e}")
+            raise
+
+    def _get_mock_floor_plan_response(self) -> str:
+        """Return mock floor plan detection for testing"""
+        import json
+
+        return json.dumps({
+            "rooms": [
+                {
+                    "name": "Living Room",
+                    "sqft": 245,
+                    "length": 17.5,
+                    "width": 14
+                },
+                {
+                    "name": "Kitchen",
+                    "sqft": 180,
+                    "length": 15,
+                    "width": 12
+                },
+                {
+                    "name": "Master Bedroom",
+                    "sqft": 200,
+                    "length": 16,
+                    "width": 12.5
+                },
+                {
+                    "name": "Bedroom 2",
+                    "sqft": 150,
+                    "length": 12.5,
+                    "width": 12
+                },
+                {
+                    "name": "Bathroom 1",
+                    "sqft": 65,
+                    "length": 8,
+                    "width": 8
+                },
+                {
+                    "name": "Bathroom 2",
+                    "sqft": 58,
+                    "length": 7.5,
+                    "width": 7.7
+                }
+            ]
+        })
+
     def _get_mock_response(self, prompt: str) -> str:
         """
         Return mock data for testing
