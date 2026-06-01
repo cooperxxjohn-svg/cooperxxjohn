@@ -16,7 +16,7 @@ from PIL import Image
 import xml.etree.ElementTree as ET
 
 class CubiCasaPreprocessor:
-    def __init__(self, data_dir="cubicasa5k/data"):
+    def __init__(self, data_dir="cubicasa5k/data/cubicasa5k"):
         self.data_dir = Path(data_dir)
         self.output_dir = Path("training_data")
         self.output_dir.mkdir(exist_ok=True)
