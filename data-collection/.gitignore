@@ -15,6 +15,9 @@ pinterest_plans/
 google_plans/
 verified_plans/
 
+# Training data (preprocessed dataset)
+training_data/
+
 # Training outputs
 models/
 checkpoints/
