@@ -1,0 +1,15 @@
+# Data Collection Requirements
+
+# Web scraping
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# HTTP requests
+requests==2.31.0
+
+# Image processing
+Pillow==10.1.0
+imagehash==4.3.1
+
+# ChromeDriver (auto-install)
+# Will be downloaded automatically by webdriver-manager
