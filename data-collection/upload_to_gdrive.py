@@ -38,22 +38,23 @@ def get_credentials():
             print("\nWe need to authorize access to your Google Drive.")
             print("Since this is a headless server, we'll use device flow.\n")
 
-            # Create a flow with OAuth client ID
-            # Using Google's OAuth client for CLI apps
+            # Use rclone's OAuth client which is verified
             client_config = {
                 "installed": {
                     "client_id": "202264815644.apps.googleusercontent.com",
-                    "client_secret": "X4Z3ca8xfWDb1Voo-F9a7ZxJ",
+                    "project_id": "rclone-1-oauth",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"]
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "client_secret": "X4Z3ca8xfWDb1Voo-F9a7ZxJ",
+                    "redirect_uris": ["http://localhost"]
                 }
             }
 
             flow = InstalledAppFlow.from_client_config(
                 client_config,
                 SCOPES,
-                redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+                redirect_uri='http://localhost:8080'
             )
 
             print("Opening authorization URL...\n")
