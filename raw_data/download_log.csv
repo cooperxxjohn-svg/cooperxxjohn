@@ -1,0 +1,7 @@
+name,source,url,downloaded,file_path
+MCGM_Civil_BOQ,MCGM Mumbai,https://www.mcgm.gov.in/irj/go/km/docs/documents/Tenders/ETH/ETH_7000013952_Civil%20BOQ.pdf,True,raw_data/MCGM_Civil_BOQ.pdf
+GSHP_BOQ,Gujarat State Health Portal,https://gshp2.gov.in/sites/default/files/tenders/Section%207%20BOQ%2027052013.pdf,False,
+Nepal_Polytechnic_Civil,MEA India,https://www.mea.gov.in/Portal/Tender/2556_1/2_2._BOQ.pdf,True,raw_data/Nepal_Polytechnic_Civil.pdf
+NIELIT_Campus_BOQ,NIELIT Agartala,https://www.nielit.gov.in/sites/default/files/agartal_volI3.pdf,True,raw_data/NIELIT_Campus_BOQ.pdf
+BITM_BOQ,BITM,https://bitm.gov.in/wp-content/uploads/2020/09/BOQ.pdf,True,raw_data/BITM_BOQ.pdf
+IITB_COPT_BOQ,IIT Bombay,https://www.iitb.ac.in/deanpl/tenders/coptb/d2.pdf,True,raw_data/IITB_COPT_BOQ.pdf

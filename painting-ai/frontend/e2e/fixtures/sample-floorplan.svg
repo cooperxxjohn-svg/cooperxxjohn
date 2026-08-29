@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="800" height="600" fill="#ffffff"/>
+  <rect x="50" y="50" width="300" height="250" fill="none" stroke="#000000" stroke-width="2"/>
+  <text x="180" y="175" font-family="Arial" font-size="20" fill="#000000">Living Room</text>
+  <text x="170" y="200" font-family="Arial" font-size="14" fill="#666666">15.5' x 12'</text>
+  <rect x="50" y="320" width="200" height="200" fill="none" stroke="#000000" stroke-width="2"/>
+  <text x="120" y="420" font-family="Arial" font-size="20" fill="#000000">Kitchen</text>
+  <text x="110" y="445" font-family="Arial" font-size="14" fill="#666666">12' x 10'</text>
+  <rect x="370" y="50" width="180" height="150" fill="none" stroke="#000000" stroke-width="2"/>
+  <text x="430" y="125" font-family="Arial" font-size="20" fill="#000000">Bedroom</text>
+  <text x="425" y="150" font-family="Arial" font-size="14" fill="#666666">10' x 9'</text>
+  <line x1="50" y1="100" x2="40" y2="100" stroke="#000000" stroke-width="1"/>
+  <line x1="40" y1="100" x2="40" y2="300" stroke="#000000" stroke-width="1"/>
+  <line x1="40" y1="300" x2="50" y2="300" stroke="#000000" stroke-width="1"/>
+  <text x="25" y="205" font-family="Arial" font-size="12" fill="#000000" transform="rotate(-90 25 205)">12'</text>
+</svg>

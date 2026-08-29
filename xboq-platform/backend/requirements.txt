@@ -1,0 +1,41 @@
+# Web Framework
+Flask==2.3.3
+flask-cors==4.0.0
+gunicorn==21.2.0
+
+# Database
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.0
+
+# PDF Processing
+PyPDF2==3.0.1
+pymupdf==1.23.8
+pdf2image==1.16.3
+pytesseract==0.3.10
+Pillow==10.0.0
+
+# AI & APIs
+anthropic>=0.7.0
+
+# Utilities
+python-dotenv==1.0.0
+
+# Authentication
+PyJWT==2.8.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+email-validator==2.1.0
+
+# Testing (optional)
+pytest==7.4.3
+pytest-cov==4.1.0
+reportlab==4.0.7
+
+# Computer Vision & Precise Measurements
+opencv-python==4.8.1.78
+numpy==1.24.3
+scipy==1.11.4
+keras-ocr==0.9.3
+shapely==2.0.2

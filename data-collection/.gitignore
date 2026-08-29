@@ -1,0 +1,33 @@
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Downloaded datasets (too large for git)
+cubicasa5k/
+*.zip
+*.tar.gz
+
+# Collected images
+collected_plans/
+pinterest_plans/
+99acres_plans/
+google_plans/
+verified_plans/
+
+# Training data (preprocessed dataset)
+training_data/
+
+# Training outputs
+models/
+checkpoints/
+runs/
+logs/
+
+# ChromeDriver cache
+.wdm/
+
+# Temporary files
+*.log
+*.tmp
+*.cache

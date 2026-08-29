@@ -1,0 +1,22 @@
+TEST TENDER DOCUMENT
+Bill of Quantities
+==================
+
+Project: Test Construction Project
+
+Section 1: Earthwork
+-------------------
+1.1 Excavation in ordinary soil: 150 cum
+1.2 Backfilling with excavated soil: 75 cum
+
+Section 2: Concrete Work
+-----------------------
+2.1 PCC 1:4:8 for foundation: 25 cum
+2.2 RCC M25 for structural work: 45 cum
+
+Section 3: Masonry
+-----------------
+3.1 Brick masonry in CM 1:6: 100 sqm
+3.2 Plastering 12mm thick: 200 sqm
+
+Total Items: 6

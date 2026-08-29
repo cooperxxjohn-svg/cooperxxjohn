@@ -1,0 +1,57 @@
+{
+  "name": "construction-ai-mcp",
+  "version": "0.1.0",
+  "description": "Claude MCP server for construction takeoffs - AI-powered estimates for drywall, painting, concrete, and more",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "construction-ai-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CLAUDE_DESKTOP_SETUP.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "dev": "tsx src/index.ts",
+    "prepare": "npm run build",
+    "test": "node test-mcp-server.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "anthropic",
+    "construction",
+    "drywall",
+    "estimating",
+    "takeoff",
+    "ai",
+    "contractors",
+    "model-context-protocol"
+  ],
+  "author": "Construction AI <cooperxxjohn@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cooperxxjohn/construction-ai-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/cooperxxjohn/construction-ai-mcp/issues"
+  },
+  "homepage": "https://github.com/cooperxxjohn/construction-ai-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}
